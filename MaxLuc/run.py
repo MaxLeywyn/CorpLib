@@ -7,8 +7,9 @@ os.environ["PGCLIENTENCODING"] = "utf-8"
 # Добавляем корневую директорию проекта в пути поиска модулей Python
 sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
-from app import create_app
-from app.extensions import db
+# ИСПРАВЛЕНО: используем те же пути импорта, что и в __init__.py
+from MaxLuc.app import create_app
+from MaxLuc.app.extensions import db
 
 app = create_app()
 
