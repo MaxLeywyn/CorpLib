@@ -1,0 +1,97 @@
+.auth-wrapper {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    min-height: 100vh;
+    padding: 16px; /* отступ для мобилок */
+}
+
+.auth-card {
+    background-color: var(--bg-white);
+    padding: 40px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    width: 100%;
+    max-width: 450px; /* Ограничение ширины на ПК */
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+
+.auth-title {
+    font-size: 24px;
+    font-weight: 400;
+    margin-bottom: 8px;
+    text-align: center;
+}
+
+.auth-subtitle {
+    font-size: 16px;
+    color: var(--text-muted);
+    margin-bottom: 30px;
+    text-align: center;
+}
+
+.form-group {
+    margin-bottom: 20px;
+    text-align: left;
+}
+
+.form-group label {
+    display: block;
+    font-size: 14px;
+    font-weight: 500;
+    margin-bottom: 8px;
+    color: var(--text-main);
+}
+
+.form-group input {
+    width: 100%;
+    padding: 12px;
+    border: 1px solid var(--border-color);
+    border-radius: 4px;
+    font-size: 16px;
+    transition: border-color var(--transition-speed);
+}
+
+/* Эффект выделения поля ввода */
+.form-group input:focus {
+    outline: none;
+    border-color: var(--primary-blue);
+    box-shadow: 0 0 0 1px var(--primary-blue);
+}
+
+.auth-btn {
+    width: 100%;
+    margin-top: 10px;
+    padding: 12px;
+}
+
+/* Адаптация на мобилки ТЕСТ */
+@media (max-width: 480px) {
+    .auth-card {
+        padding: 24px 16px;
+        border: none;
+        background: transparent;
+        box-shadow: none;
+    }
+}
+/* Класс для скрытия элементов */
+.hidden {
+    display: none !important;
+}
+
+/* Стиль для ссылки переключения между входом и регистрацией */
+.toggle-link {
+    display: block;
+    margin-top: 24px;
+    text-align: center;
+    font-size: 14px;
+    color: var(--primary-blue);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color var(--transition-speed);
+}
+
+.toggle-link:hover {
+    color: var(--hover-blue);
+    text-decoration: underline;
+}
