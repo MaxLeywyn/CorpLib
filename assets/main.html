@@ -1,0 +1,56 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Панель управления | Библиотека</title>
+    <link rel="stylesheet" href="../css/global.css">
+    <link rel="stylesheet" href="../css/main-layout.css">
+</head>
+<body>
+
+<div class="app-container">
+    <aside class="app-sidebar">
+        <div class="sidebar-header">
+            <h2>Корп.Библиотека</h2>
+        </div>
+        <!-- Панель на будущее -->
+        <nav class="sidebar-nav">
+            <a href="#catalog" class="nav-item active">Каталог книг</a>
+            <a href="#my-courses" class="nav-item">Моё обучение</a>
+
+            <div id="admin-block" class="nav-section">
+                <span class="section-title">Управление (HR)</span>
+                <a href="#upload" class="nav-item">Добавить материал</a>
+                <a href="#categories" class="nav-item">Категории</a>
+            </div>
+
+            <div id="superuser-block" class="nav-section">
+                <span class="section-title">Администрирование</span>
+                <a href="#manage-admins" class="nav-item">Назначить админов</a>
+            </div>
+        </nav>
+
+        <div class="sidebar-footer">
+            <span id="user-role-badge" class="badge">Роль: Загрузка...</span>
+            <button id="logout-btn" class="btn">Выйти</button>
+        </div>
+    </aside>
+
+    <main class="app-content">
+        <header class="content-header">
+            <h1 id="page-title">Каталог материалов</h1>
+            <div class="user-profile">
+                <span id="user-email">user@company.com</span>
+            </div>
+        </header>
+
+        <section class="content-body">
+            <p>Здесь будет отображаться контент выбранной вкладки.</p>
+        </section>
+    </main>
+</div>
+
+<script src="../js/index.js"></script>
+</body>
+</html>
