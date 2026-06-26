@@ -1,0 +1,50 @@
+/* Общий дизайн приложения */
+:root {
+    --primary-blue: #1a73e8;       /* Основной синий */
+    --hover-blue: #1557b0;         /* Темно-синий при наведении */
+    --warm-blue-bg: #f0f4f9;       /* Мягкий светлый фон для страниц */
+    --sidebar-bg: #ffffff;         /* Фон боковой панели */
+    --text-main: #1f1f1f;          /* Черный основной текст */
+    --text-muted: #5f6368;         /* Серый текст для подписей */
+    --border-color: #e0e3e7;       /* Цвет рамок */
+    --bg-white: #ffffff;
+    --transition-speed: 0.2s;
+}
+
+/* сброс стилей по умолчанию */
+* {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: var(--warm-blue-bg);
+    color: var(--text-main);
+    line-height: 1.5;
+    -webkit-font-smoothing: antialiased;
+}
+
+/* общие стили для кнопок */
+.btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 20px;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 4px;
+    border: none;
+    cursor: pointer;
+    transition: background-color var(--transition-speed);
+}
+
+.btn-primary {
+    background-color: var(--primary-blue);
+    color: white;
+}
+
+.btn-primary:hover {
+    background-color: var(--hover-blue);
+}
