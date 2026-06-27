@@ -2,35 +2,52 @@ from flask import Blueprint, request, jsonify
 from MaxLuc.app.extensions import db
 from MaxLuc.app.models import Material, Tag, DownloadHistory
 from MaxLuc.app.schemas import material_schema, materials_schema
+from sqlalchemy import or_
+
 
 materials_bp = Blueprint('materials', __name__, url_prefix='/api/materials')
 
 
 @materials_bp.route('', methods=['GET'])
 def get_materials():
-    query = Material.query
+    """
+    Каталог материалов с фильтрацией по типу, категориям, тегам и полнотекстовым поиском
+    """
+    try:
+        query = Material.query
 
-    mat_type = request.args.get('type')
-    if mat_type:
-        query = query.filter(Material.type == mat_type)
+        # 1. Фильтр по типу контента (book / video)
+        mat_type = request.args.get('type')
+        if mat_type:
+            query = query.filter(Material.type == mat_type)
 
-    category_id = request.args.get('category_id')
-    if category_id:
-        query = query.filter(Material.category_id == category_id)
+        # 2. Фильтр по категории
+        category_id = request.args.get('category_id')
+        if category_id:
+            query = query.filter(Material.category_id == category_id)
 
-    search = request.args.get('search')
-    if search:
-        search_fmt = f"%{search}%"
-        query = query.filter(
-            db.or_(
-                Material.title.ilike(search_fmt),
-                Material.author.ilike(search_fmt),
-                Material.description.ilike(search_fmt)
+        # 3. НОВОЕ: Фильтр по тегу (делаем JOIN с таблицей тегов)
+        tag_name = request.args.get('tag')
+        if tag_name:
+            query = query.join(Material.tags).filter(Tag.name == tag_name)
+
+        # 4. Поиск по подстроке (Регистронезависимый)
+        search = request.args.get('search')
+        if search:
+            search_fmt = f"%{search}%"
+            query = query.filter(
+                or_(
+                    Material.title.ilike(search_fmt),
+                    Material.author.ilike(search_fmt),
+                    Material.description.ilike(search_fmt)
+                )
             )
-        )
 
-    materials = query.all()
-    return jsonify(materials_schema.dump(materials)), 200
+        materials = query.all()
+        return jsonify(materials_schema.dump(materials)), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 
 @materials_bp.route('/<int:id>', methods=['GET'])
@@ -80,3 +97,4 @@ def log_download(id):
     db.session.add(log_entry)
     db.session.commit()
     return jsonify({"status": "success", "message": "Download history updated"}), 200
+
