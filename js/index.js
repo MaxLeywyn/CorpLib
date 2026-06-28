@@ -1,50 +1,115 @@
 document.addEventListener("DOMContentLoaded", () => {
-    // Проверка авторизации пользователя
     const sessionData = localStorage.getItem("currentUser");
-
     if (!sessionData) {
-        // Отправляем на страницу входа если нет
-        window.location.href = "authWindow.html";
+        window.location.replace("./authWindow.html");
         return;
     }
 
-    // Тест без БД
     const currentUser = JSON.parse(sessionData);
 
-    // Отображение данных пользователя в шапке
-    document.getElementById("user-email").innerText = `${currentUser.name} (${currentUser.email})`;
+    // Вывод ФИО и роль в интерфейс
+    if (document.getElementById("user-email")) {
+        document.getElementById("user-email").innerText = `${currentUser.name} (${currentUser.email})`;
+    }
 
     const roleBadge = document.getElementById("user-role-badge");
+
+    // Роль в футер
+    if (roleBadge) {
+        if (currentUser.role === "employee") roleBadge.innerText = "Роль: Сотрудник";
+        if (currentUser.role === "admin") roleBadge.innerText = "Роль: Администратор (HR)";
+        if (currentUser.role === "superuser") roleBadge.innerText = "Роль: Суперюзер";
+    }
+
+    // Управление блоков в боковом меню
     const adminBlock = document.getElementById("admin-block");
     const superuserBlock = document.getElementById("superuser-block");
-
-    // Управление интерфейсом на основе Роли
+    // Для юзера все закрыто
     if (currentUser.role === "employee") {
-        roleBadge.innerText = "Роль: Сотрудник";
-        adminBlock.style.style.setProperty('display', 'none', 'important');
-        superuserBlock.style.style.setProperty('display', 'none', 'important');
-        adminBlock.style.display = "none";
-        superuserBlock.style.display = "none";
+        if (adminBlock) adminBlock.style.display = "none";
+        if (superuserBlock) superuserBlock.style.display = "none";
     }
+    // Для админа открыт добавление материала и категорий
     else if (currentUser.role === "admin") {
-        roleBadge.innerText = "Роль: Администратор (HR)";
-        adminBlock.style.display = "block";
-        superuserBlock.style.display = "none";
+        if (adminBlock) adminBlock.style.display = "block";
+        if (superuserBlock) superuserBlock.style.display = "none";
     }
+    // Для суперюзера админ + назначение админов
     else if (currentUser.role === "superuser") {
-        roleBadge.innerText = "Роль: Суперюзер";
-        adminBlock.style.display = "block";
-        superuserBlock.style.display = "block";
+        if (adminBlock) adminBlock.style.display = "block";
+        if (superuserBlock) superuserBlock.style.display = "block";
     }
 
-    // Кнопка Выйти
-    const logoutBtn = document.getElementById("logout-btn");
-    if (logoutBtn) {
-        logoutBtn.addEventListener("click", () => {
-            // Удаляем данные сессии
-            localStorage.removeItem("currentUser");
-            // Перенаправляем на форму входа (тест)
-            window.location.href = "authWindow.html";
+    // Логика модального окна для создания категорий
+    const addCategoryBtn = document.getElementById("add-category-btn");
+    const categoryModal = document.getElementById("category-modal");
+    const closeModalIcon = document.getElementById("close-modal-icon");
+    const cancelCategoryBtn = document.getElementById("cancel-category-btn");
+    const categoryForm = document.getElementById("category-form");
+
+    // Отображение кнопки только для нужных ролей
+    if (currentUser.role === "admin" || currentUser.role === "superuser") {
+        if (addCategoryBtn) {
+            addCategoryBtn.style.display = "inline-flex";
+        }
+    }
+
+    // Закрытие модального окна
+    const closeCategoryModal = () => {
+        if (categoryModal) categoryModal.classList.add("hidden");
+        if (categoryForm) categoryForm.reset(); // Очищаем поля формы
+    };
+
+    // Открытие модального окна по клику
+    if (addCategoryBtn) {
+        addCategoryBtn.addEventListener("click", () => {
+            if (categoryModal) {
+                categoryModal.classList.remove("hidden");
+            }
+        });
+    }
+
+    if (closeModalIcon) closeModalIcon.addEventListener("click", closeCategoryModal);
+    if (cancelCategoryBtn) cancelCategoryBtn.addEventListener("click", closeCategoryModal);
+
+    // Отправка POST-запроса на бэкенд
+    if (categoryForm) {
+        categoryForm.addEventListener("submit", async (e) => {
+            e.preventDefault();
+
+            const nameInput = document.getElementById("category-name").value.trim();
+            const descInput = document.getElementById("category-description").value.trim();
+
+            const requestBody = {
+                name: nameInput,
+                description: descInput
+            };
+
+            try {
+                const response = await fetch(`${API_BASE_URL}/api/admin/categories`, {
+                    method: "POST",
+                    headers: {
+                        "Content-Type": "application/json",
+                        "X-User-Id": currentUser.id // Идентификатор пользователя (с бека)
+                    },
+                    body: JSON.stringify(requestBody)
+                });
+
+                if (response.status === 201 || response.ok) {
+                    alert("Категория успешно добавлена.");
+                    closeCategoryModal();
+                } else if (response.status === 400) {
+                    const errorData = await response.json();
+                    alert(errorData.message || "Ошибка: Категория с таким названием уже существует.");
+                } else if (response.status === 401) {
+                    alert("Ошибка 401: Недостаточно прав или не передан ID пользователя.");
+                } else {
+                    alert(`Непредвиденная ошибка. Статус: ${response.status}`);
+                }
+            } catch (error) {
+                console.error("Сбой сети:", error);
+                alert("Ошибка подключения к серверу. Убедитесь, что бэкенд запущен.");
+            }
         });
     }
 });

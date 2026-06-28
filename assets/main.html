@@ -12,22 +12,23 @@
 <div class="app-container">
     <aside class="app-sidebar">
         <div class="sidebar-header">
-            <h2>Корп.Библиотека</h2>
+            <a href="main.html" class="sidebar-logo-link">Корпоративная Библиотека</a>
         </div>
-        <!-- Панель на будущее -->
         <nav class="sidebar-nav">
-            <a href="#catalog" class="nav-item active">Каталог книг</a>
-            <a href="#my-courses" class="nav-item">Моё обучение</a>
-
-            <div id="admin-block" class="nav-section">
-                <span class="section-title">Управление (HR)</span>
-                <a href="#upload" class="nav-item">Добавить материал</a>
-                <a href="#categories" class="nav-item">Категории</a>
+            <div id="common-block">
+                <a href="#окно-каталога-книг" class="nav-link active">Каталог книг</a>
+                <a href="#курсы-сотрудника" class="nav-link">Моё обучение</a>
             </div>
 
-            <div id="superuser-block" class="nav-section">
-                <span class="section-title">Администрирование</span>
-                <a href="#manage-admins" class="nav-item">Назначить админов</a>
+            <div id="admin-block">
+                <div class="nav-section-title">УПРАВЛЕНИЕ (HR)</div>
+                <a href="#" class="nav-link">Добавить материал</a>
+                <a href="#думаем" class="nav-link">Категории</a>
+            </div>
+
+            <div id="superuser-block">
+                <div class="nav-section-title">АДМИНИСТРИРОВАНИЕ</div>
+                <a href="#окно-с-списком-всех-польз" class="nav-link">Назначить админов</a>
             </div>
         </nav>
 
@@ -40,8 +41,15 @@
     <main class="app-content">
         <header class="content-header">
             <h1 id="page-title">Каталог материалов</h1>
-            <div class="user-profile">
-                <span id="user-email">user@company.com</span>
+            <!--Добавление категории -->
+            <div class="header-actions" style="display: flex; align-items: center; gap: 16px;">
+                <button id="add-category-btn" class="btn-action-blue" style="display: none;">
+                    <span>+</span> Добавить категорию
+                </button>
+
+                <div class="user-profile">
+                    <span id="user-email">user@company.com</span>
+                </div>
             </div>
         </header>
 
@@ -50,7 +58,34 @@
         </section>
     </main>
 </div>
+<!-- Создание категории с выводом модального окна -->
+<div id="category-modal" class="modal-backdrop hidden">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h2>Создание категории</h2>
+            <button id="close-modal-icon" class="btn-close">&times;</button>
+        </div>
+
+        <form id="category-form">
+            <div class="input-group">
+                <label for="category-name">Название категории (обязательно)</label>
+                <input type="text" id="category-name" required placeholder="Например: Дизайн">
+            </div>
+
+            <div class="input-group">
+                <label for="category-description">Описание (необязательно)</label>
+                <textarea id="category-description" rows="3" placeholder="Материалы по по дизайну"></textarea>
+            </div>
+
+            <div class="modal-footer">
+                <button type="button" id="cancel-category-btn" class="btn-outline">Отмена</button>
+                <button type="submit" class="btn-action-blue">Создать</button>
+            </div>
+        </form>
+    </div>
+</div>
 
 <script src="../js/index.js"></script>
+<script src="../config.js"></script>
 </body>
 </html>
