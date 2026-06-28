@@ -1,18 +1,3 @@
-// Тест (без БД)
-const TEST_USERS = [
-    { email: "user@company.com", password: "user123", role: "employee", name: "Иван Сотрудник" },
-    { email: "hr@company.com", password: "hr123", role: "admin", name: "Ольга HR" },
-    { email: "root@company.com", password: "root123", role: "superuser", name: "Алексей Суперюзер" }
-];
-
-function initDatabase() {
-    if (!localStorage.getItem("users_db")) {
-        localStorage.setItem("users_db", JSON.stringify(TEST_USERS));
-    }
-}
-
-initDatabase();
-
 // Переключение форм
 const loginView = document.getElementById('login-view');
 const registerView = document.getElementById('register-view');
@@ -39,24 +24,24 @@ if (showLoginBtn) {
 
 // ВХОД
 const loginForm = document.getElementById("login-form");
-//ТЕСТ СВЯЗИ С БД
+// Работа с БД
 if (loginForm) {
-
     loginForm.addEventListener("submit", async function (event) {
-        event.preventDefault();
+        event.preventDefault(); // Запрещаем перезагрузку страницы
 
-        // сбор email-pass
+        // Забираем данные из полей ввода формы
         const loginInput = document.getElementById("login-email").value.trim();
         const passwordInput = document.getElementById("login-password").value;
 
+        // Упаковываем в объект
         const requestBody = {
             login: loginInput,
             password: passwordInput
         };
 
         try {
-            // Отправка POST-запроса на бэкенд
-            const response = await fetch(`${window.API_BASE_URL}/api/auth/login`, {
+            // Отправка запроса на сервер
+            const response = await fetch(`${API_BASE_URL}/auth/login`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json"
@@ -64,13 +49,11 @@ if (loginForm) {
                 body: JSON.stringify(requestBody)
             });
 
-            // Чтение ответа сервера
             const data = await response.json();
 
-            // Проверка статуса ответа
+            // Проверка ответа сервер
             if (response.ok && data.status === "success") {
-
-                // Сохраняем реальные данные с сервера в сессию
+                // Сохранение пользователя в localStorage
                 localStorage.setItem("currentUser", JSON.stringify({
                     id: data.user.id,
                     email: data.user.login,
@@ -78,62 +61,75 @@ if (loginForm) {
                     name: data.user.name
                 }));
 
-                // перенаправляем на главную страницу
-                window.location.replace("main.html");
+                // переход на главное окно
+                window.location.replace("./main.html");
 
             } else {
-                // Если сервер ответил ошибкой
-                alert("Ошибка авторизации. Проверьте логин и пароль.");
+                // Ошибка с бека (пример - неверный пароль)
+                alert(data.message || "Неверный логин или пароль.");
             }
 
         } catch (error) {
-            // Если сервер вообще не ответил (или блок запроса)
-            console.error("Сетевая ошибка:", error);
-            alert("Не удалось подключиться к серверу. Убедитесь, что бэкенд запущен.");
+            // Ошибка сети
+            console.error("Ошибка сети:", error);
+            alert("Не удалось связаться с сервером. Проверьте, запущен ли бэкенд.");
         }
     });
 }
 
-// Регистрация (сырой вариант)
+// Регистрация (лучше вариант)
 const registerForm = document.getElementById("register-form");
 
 if (registerForm) {
-    registerForm.addEventListener("submit", function (event) {
+    registerForm.addEventListener("submit", async function (event) {
         event.preventDefault();
 
+        // Сбор данных из полей ввода
         const nameInput = document.getElementById("register-name").value.trim();
         const emailInput = document.getElementById("register-email").value.trim();
         const passwordInput = document.getElementById("register-password").value;
 
-        let users = JSON.parse(localStorage.getItem("users_db"));
-
-        const userExists = users.some(u => u.email === emailInput);
-
-        if (userExists) {
-            alert("Пользователь с таким email уже существует.");
-            return;
-        }
-
-        // создание нового пользователя (базовая роль)
-        const newUser = {
-            email: emailInput,
+        // Формирование тела запроса бекенду
+        const requestBody = {
+            login: emailInput,
             password: passwordInput,
-            role: "employee",
-            name: nameInput
+            full_name: nameInput
         };
 
-        // добавляем в базу и сохраняем
-        users.push(newUser);
-        localStorage.setItem("users_db", JSON.stringify(users));
+        try {
+            // Отправка на бэкенд
+            const response = await fetch(`${API_BASE_URL}/auth/register`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json"
+                },
+                body: JSON.stringify(requestBody)
+            });
 
-        // автоматически логиним пользователя после успешной регистрации
-        localStorage.setItem("currentUser", JSON.stringify({
-            email: newUser.email,
-            role: newUser.role,
-            name: newUser.name
-        }));
+            const data = await response.json();
 
-        alert("Регистрация прошла успешно!");
-        window.location.replace("main.html");
+            // Обработка ответа сервера
+            if (response.ok && data.status === "success") {
+                alert("Регистрация прошла успешно!");
+                // Автоматически авторизуем пользователя, сохраняя сессию
+                localStorage.setItem("currentUser", JSON.stringify({
+                    id: data.user.id,
+                    email: data.user.login,
+                    role: data.user.role,
+                    name: data.user.name
+                }));
+
+                // Перенаправляем в ЛК
+                window.location.replace("./main.html");
+
+            } else {
+                // Если бэкенд вернул ошибку (повтор почты?)
+                alert(data.message || "Ошибка при регистрации. Возможно, этот email уже занят.");
+            }
+
+        } catch (error) {
+            console.error("Сетевая ошибка при регистрации:", error);
+            alert("Не удалось связаться с сервером для регистрации. Убедитесь, что бэкенд активен.");
+        }
     });
 }
