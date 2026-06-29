@@ -133,3 +133,24 @@ if (registerForm) {
         }
     });
 }
+// Логика отображения пароля при нажатии на глазок
+document.querySelectorAll('.toggle-password-btn').forEach(btn => {
+    btn.addEventListener('click', function() {
+        const targetId = this.getAttribute('data-target');
+        const passwordInput = document.getElementById(targetId);
+
+        if (passwordInput) {
+            if (passwordInput.type === 'password') {
+                // Переводим в тип "текст" и подсвечиваем синим "глазок"
+                passwordInput.type = 'text';
+                this.textContent = '👁';
+                this.style.color = 'var(--primary-blue)';
+            } else {
+                // Обратно в тип "пароль"
+                passwordInput.type = 'password';
+                this.textContent = '👁';
+                this.style.color = 'var(--text-muted)';
+            }
+        }
+    });
+});

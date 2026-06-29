@@ -95,3 +95,32 @@
     color: var(--hover-blue);
     text-decoration: underline;
 }
+
+/* Отображение введеного пароля пользователю */
+.password-wrapper {
+    position: relative;
+    display: flex;
+    align-items: center;
+}
+
+.password-wrapper input {
+    width: 100%;
+    padding-right: 40px; /* Отступ, чтобы длинный пароль не заходил под иконку */
+}
+
+.toggle-password-btn {
+    position: absolute;
+    right: 12px;
+    background: none;
+    border: none;
+    font-size: 18px;
+    cursor: pointer;
+    color: var(--text-muted);
+    user-select: none;
+    padding: 4px;
+    transition: color var(--transition-speed);
+}
+
+.toggle-password-btn:hover {
+    color: var(--primary-blue);
+}
