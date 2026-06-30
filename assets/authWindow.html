@@ -6,6 +6,7 @@
     <title>Вход | Корпоративная библиотека</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/auth.css">
+    <link rel="icon" href="../icon/readIcon.png" type="image/x-icon">
 </head>
 <body>
 
@@ -48,12 +49,15 @@
 
                 <div class="form-group">
                     <label for="register-email">Логин</label>
-                    <input type="email" id="register-email" required placeholder="name@company.com">
+                    <input type="email" id="register-email" required placeholder="name@mail.ru">
                 </div>
 
                 <div class="form-group">
                     <label for="register-password">Пароль</label>
-                    <input type="password" id="register-password" required placeholder="Придумайте пароль">
+                    <div class="password-wrapper">
+                        <input type="password" id="register-password" required placeholder="Придумайте пароль">
+                        <button type="button" class="toggle-password-btn" data-target="register-password">👁</button>
+                    </div>
                 </div>
 
                 <button type="submit" class="btn btn-primary auth-btn">Зарегистрироваться</button>
