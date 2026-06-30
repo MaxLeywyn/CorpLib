@@ -6,6 +6,7 @@
     <title>Панель управления | Библиотека</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/main-layout.css">
+    <link rel="icon" href="../icon/readIcon.png" type="image/x-icon">
 </head>
 <body>
 
@@ -16,7 +17,7 @@
         </div>
         <nav class="sidebar-nav">
             <div id="common-block">
-                <a href="#окно-каталога-книг" class="nav-link active">Каталог книг</a>
+                <a href="#окно-каталога-книг" class="nav-link active">Список категорий</a>
                 <a href="#курсы-сотрудника" class="nav-link">Моё обучение</a>
             </div>
 
@@ -41,7 +42,6 @@
     <main class="app-content">
         <header class="content-header">
             <h1 id="page-title">Каталог материалов</h1>
-            <!--Добавление категории -->
             <div class="header-actions" style="display: flex; align-items: center; gap: 16px;">
                 <button id="add-category-btn" class="btn-action-blue" style="display: none;">
                     <span>+</span> Добавить категорию
@@ -54,7 +54,24 @@
         </header>
 
         <section class="content-body">
-            <p>Здесь будет отображаться контент выбранной вкладки.</p>
+            <div id="categories-container" class="categories-grid">
+            </div>
+            <!-- Суперюзер: логика назначения/снятия админа -->
+            <div id="users-management-container" class="hidden" style="background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08);">
+                <div style="margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
+                    Управление правами доступа сотрудников компании
+                </div>
+                <!-- Вывод всех пользователей с бека (кроме суперюзера) -->
+                <div class="users-list-header" style="display: grid; grid-template-columns: 2fr 2fr 1fr 40px; padding: 12px 16px; background: var(--warm-blue-bg); font-weight: 600; border-radius: 8px; margin-bottom: 8px;">
+                    <div>ФИО</div>
+                    <div>Email</div>
+                    <div>Текущая роль</div>
+                    <div></div> <!-- Для иконки назначения/снятия админки -->
+                </div>
+                <div id="users-list-body">
+                </div>
+
+            </div>
         </section>
     </main>
 </div>
@@ -65,23 +82,72 @@
             <h2>Создание категории</h2>
             <button id="close-modal-icon" class="btn-close">&times;</button>
         </div>
-
         <form id="category-form">
+            <!-- Работа с карточной категории -->
             <div class="input-group">
                 <label for="category-name">Название категории (обязательно)</label>
                 <input type="text" id="category-name" required placeholder="Например: Дизайн">
             </div>
-
             <div class="input-group">
                 <label for="category-description">Описание (необязательно)</label>
-                <textarea id="category-description" rows="3" placeholder="Материалы по по дизайну"></textarea>
+                <textarea id="category-description" rows="3" placeholder="Материалы по дизайну"></textarea>
             </div>
-
             <div class="modal-footer">
                 <button type="button" id="cancel-category-btn" class="btn-outline">Отмена</button>
                 <button type="submit" class="btn-action-blue">Создать</button>
             </div>
         </form>
+    </div>
+</div>
+<!-- Редактирование категории -->
+<div id="edit-category-modal" class="modal-backdrop hidden">
+    <div class="modal-window">
+        <div class="modal-header">
+            <h2>Редактирование категории</h2>
+            <button id="close-edit-modal-icon" class="btn-close">&times;</button>
+        </div>
+        <form id="edit-category-form">
+            <input type="hidden" id="edit-category-id">
+
+            <div class="input-group">
+                <label for="edit-category-name">Название категории (обязательно)</label>
+                <input type="text" id="edit-category-name" required>
+            </div>
+            <div class="input-group">
+                <label for="edit-category-description">Описание (необязательно)</label>
+                <textarea id="edit-category-description" rows="3"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button type="button" id="cancel-edit-category-btn" class="btn-outline">Отмена</button>
+                <button type="submit" class="btn-action-blue">Сохранить</button>
+            </div>
+        </form>
+    </div>
+</div>
+<!-- Удаление категории -->
+<div id="delete-confirm-modal" class="modal-backdrop hidden">
+    <div class="modal-window" style="max-width: 360px; text-align: center;">
+        <h3 style="margin-bottom: 12px; font-size: 18px; color: var(--text-main);">Удаление категории</h3>
+        <p id="delete-confirm-text" style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+            Вы действительно хотите удалить категорию?
+        </p>
+        <div class="modal-footer" style="justify-content: center; gap: 12px; padding: 0; border: none;">
+            <button type="button" id="confirm-delete-no" class="btn-outline" style="padding: 8px 20px;">Нет</button>
+            <button type="button" id="confirm-delete-yes" class="btn-action-blue" style="background-color: #d93025; padding: 8px 20px;">Да</button>
+        </div>
+    </div>
+</div>
+<!-- Модальное окно с подтверждением выхода из аккаунта -->
+<div id="logout-confirm-modal" class="modal-backdrop hidden">
+    <div class="modal-window" style="max-width: 360px; text-align: center;">
+        <h3 style="margin-bottom: 12px; font-size: 18px; color: var(--text-main);">Выход из системы</h3>
+        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+            Вы действительно хотите выйти из аккаунта?
+        </p>
+        <div class="modal-footer" style="justify-content: center; gap: 12px; padding: 0; border: none;">
+            <button type="button" id="confirm-logout-no" class="btn-outline" style="padding: 8px 20px;">Отмена</button>
+            <button type="button" id="confirm-logout-yes" class="btn-action-blue" style="background-color: #d93025; padding: 8px 20px;">Выйти</button>
+        </div>
     </div>
 </div>
 
