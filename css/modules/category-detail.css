@@ -1,0 +1,114 @@
+/* Контейнер детализации категории */
+.category-detail-wrapper {
+    display: flex;
+    flex-direction: column;
+    gap: 32px;
+    width: 100%;
+}
+
+/* Кнопка возврата к категории (сырая) */
+.btn-back {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    background: none;
+    border: 1px solid var(--border-color);
+    padding: 8px 16px;
+    border-radius: 6px;
+    color: var(--text-main);
+    font-weight: 500;
+    cursor: pointer;
+    transition: all var(--transition-speed);
+    width: max-content;
+}
+/* Наведение на кнопку */
+.btn-back:hover {
+    background-color: var(--warm-blue-bg);
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+/* Панель действий администратора */
+.admin-actions-panel {
+    display: flex;
+    gap: 16px;
+    background-color: var(--warm-blue-bg);
+    padding: 16px;
+    border-radius: 8px;
+    border: 1px solid #e1e8ed;
+}
+
+/* Секции контента */
+.content-section-title {
+    font-size: 18px;
+    font-weight: 600;
+    color: var(--text-main);
+    margin-bottom: 16px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Сетка для курсов */
+.courses-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 20px;
+}
+
+/* Табличный вывод одиночных материалов */
+.materials-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+/* Карточка материалов */
+.material-row-card {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    background: #ffffff;
+    padding: 14px 20px;
+    border-radius: 8px;
+    border: 1px solid var(--border-color);
+    transition: transform var(--transition-speed), box-shadow var(--transition-speed);
+}
+/* Карточка материалов при наведении */
+.material-row-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+}
+
+.material-info {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.material-row-title {
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.material-row-meta {
+    font-size: 13px;
+    color: var(--text-muted);
+}
+/* Теги на карточку с материалами (тест) */
+.material-type-tag {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+}
+/* Тип материала - книга */
+.type-book {
+    background-color: #e3f2fd;
+    color: #0d47a1;
+}
+/* Тип материала - видео */
+.type-video {
+    background-color: #e8f5e9;
+    color: #1b5e20;
+}
