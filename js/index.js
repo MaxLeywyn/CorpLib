@@ -1,3 +1,5 @@
+import { openCategoryDetails } from './modules/category-detail.js';
+
 document.addEventListener("DOMContentLoaded", () => {
     const sessionData = localStorage.getItem("currentUser");
     if (!sessionData) {
@@ -81,10 +83,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
             categoriesContainer?.classList.add("hidden");
             usersManagementContainer?.classList.add("hidden");
+
+            // Скрытие лишних окон при переключении
+            document.getElementById("category-detail-container")?.classList.add("hidden");
             if (addCategoryBtn) addCategoryBtn.style.display = "none";
 
             // Логика отображения в зависимости от выбранного пункта меню
-            if (linkText === "Категории" || linkText === "Каталог книг") {
+            // ТОЧНОЕ название вкладки
+            if (linkText === "Список категорий" || linkText === "Категории") {
                 categoriesContainer?.classList.remove("hidden");
                 if ((currentUser.role === "admin" || currentUser.role === "superuser") && addCategoryBtn) {
                     addCategoryBtn.style.display = "inline-flex";
@@ -178,31 +184,40 @@ document.addEventListener("DOMContentLoaded", () => {
             const hasAccess = currentUser.role === "admin" || currentUser.role === "superuser";
 
             card.innerHTML = `
-                <div class="category-header">
-                    <div class="category-title">${category.name}</div>
-                    <div class="category-description">
-                        ${category.description ? category.description : "Описание отсутствует"}
+            <div class="category-header">
+                <div class="category-title">${category.name}</div>
+                <div class="category-description">
+                    ${category.description ? category.description : "Описание отсутствует"}
+                </div>
+            </div>
+            <div class="category-footer">
+                <span>Открыть</span>
+                
+                ${hasAccess ? `
+                <div class="category-menu-container" style="position: relative;">
+                    <button class="category-menu-btn" data-id="${category.id}">&#8942;</button>
+                    <div class="category-dropdown hidden" id="dropdown-${category.id}">
+                        <div class="category-dropdown-item edit-item" 
+                             data-id="${category.id}" 
+                             data-name="${category.name}" 
+                             data-desc="${category.description || ''}">Редактировать</div>
+                        <div class="category-dropdown-item delete-item" 
+                             data-id="${category.id}" 
+                             data-name="${category.name}">Удалить</div>
                     </div>
                 </div>
-                <div class="category-footer">
-                    <span>Открыть</span>
-                    
-                    ${hasAccess ? `
-                    <div class="category-menu-container" style="position: relative;">
-                        <button class="category-menu-btn" data-id="${category.id}">&#8942;</button>
-                        <div class="category-dropdown hidden" id="dropdown-${category.id}">
-                            <div class="category-dropdown-item edit-item" 
-                                 data-id="${category.id}" 
-                                 data-name="${category.name}" 
-                                 data-desc="${category.description || ''}">Редактировать</div>
-                            <div class="category-dropdown-item delete-item" 
-                                 data-id="${category.id}" 
-                                 data-name="${category.name}">Удалить</div>
-                        </div>
-                    </div>
-                    ` : ""}
-                </div>
-            `;
+                ` : ""}
+            </div>
+        `;
+            // Переход внутрь категории
+            card.addEventListener("click", (e) => {
+                // Если троеточие-выпадающие окна - возврат
+                if (e.target.closest(".category-menu-container")) return;
+
+                // Вызов функции детализации (курсы-материалы)
+                openCategoryDetails(category.id, category.name, currentUser);
+            });
+
             container.appendChild(card);
         });
 
