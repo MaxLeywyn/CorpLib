@@ -28,12 +28,12 @@ def create_app(config_class=Config):
     # ==============================================================================
     # Настройка CORS
     # ==============================================================================
-    # 1. Базовые адреса для локальной разработки
+    #адреса для локальной разработки
     allowed_origins = [
         "http://localhost:3000",
         "http://localhost:5173",
         "http://localhost:8080",
-        "http://localhost:63342",
+        "http://localhost:63342", #Саня
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "http://127.0.0.1:8080"
@@ -44,15 +44,14 @@ def create_app(config_class=Config):
     if extra_origin:
         allowed_origins.append(extra_origin)
 
-    # 3. Применяем конфигурацию
-    # Используем единый стиль через resources для контроля путей /api/*
+    #Применяем конфигурацию
     CORS(
         app,
         resources={
             r"/api/*": {
                 "origins": allowed_origins,
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization"],
+                "allow_headers": ["Content-Type", "X-User-Id","Authorization"],
                 "supports_credentials": True
             }
         }

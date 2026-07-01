@@ -19,7 +19,6 @@ def track_material_access():
         if not user_id or not material_id:
             return jsonify({"status": "error", "message": "user_id и material_id обязательны"}), 400
 
-        # Проверяем, существуют ли вообще такие юзер и материал
         user_exists = User.query.get(user_id)
         material_exists = Material.query.get(material_id)
 
@@ -28,7 +27,6 @@ def track_material_access():
         if not material_exists:
             return jsonify({"status": "error", "message": f"Материал с ID {material_id} не найден"}), 404
 
-        # Добавляем запись в историю скачиваний
         history_entry = DownloadHistory(
             user_id=user_id,
             material_id=material_id,
@@ -52,13 +50,13 @@ def get_user_history(user_id):
     Возвращает список всех материалов, которые этот пользователь читал или смотрел
     """
     try:
-        # Ищем записи в истории для конкретного юзера и подтягиваем связанные материалы
+
         history_records = DownloadHistory.query.filter_by(user_id=user_id).order_by(
             DownloadHistory.accessed_at.desc()).all()
 
         result = []
         for record in history_records:
-            # Получаем объект материала напрямую благодаря backref/relationship в ORM
+            #объект материала
             material = Material.query.get(record.material_id)
             if material:
                 result.append({
@@ -82,13 +80,3 @@ def get_user_history(user_id):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-
-@history_bp.route('/api/tunnel-test', methods=['GET'])
-def tunnel_test():
-    return jsonify({
-        "host_header": request.host,
-        "url": request.url,
-        "origin": request.headers.get('Origin'),
-        "x_forwarded_for": request.headers.get('X-Forwarded-For'),
-        "message": "Tunnel works!"
-    }), 200
