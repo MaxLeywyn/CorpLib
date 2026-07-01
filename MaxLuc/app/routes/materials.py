@@ -1,4 +1,6 @@
+import os
 from flask import Blueprint, request, jsonify
+from werkzeug.utils import secure_filename
 from MaxLuc.app.extensions import db
 from MaxLuc.app.models import Material, Tag, DownloadHistory
 from MaxLuc.app.schemas import material_schema, materials_schema
@@ -98,3 +100,26 @@ def log_download(id):
     db.session.commit()
     return jsonify({"status": "success", "message": "Download history updated"}), 200
 
+@materials_bp.route('/upload', methods=['POST'])
+def upload_file():
+    if 'file' not in request.files:
+        return jsonify({"error": "No file part"}), 400
+    
+    file = request.files['file']
+    
+    if file.filename == '':
+        return jsonify({"error": "No selected file"}), 400
+    
+    if file:
+        filename = secure_filename(file.filename)
+
+        current_dir = os.path.dirname(os.path.abspath(__file__)) # это папка routes
+        app_dir = os.path.dirname(current_dir)
+        upload_path = os.path.join(app_dir, 'static', 'uploads', filename)
+        file.save(upload_path)
+
+        file_size = os.path.getsize(upload_path)
+        file_url = f"/static/uploads/{filename}"
+
+        return jsonify({"status": "success", "message": "The file has been successfully saved to disk", "file_url": file_url, "file_size": file_size}), 201
+    
