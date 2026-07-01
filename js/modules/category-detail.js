@@ -1,3 +1,5 @@
+import { openCourseStructure } from './course-detail.js';
+
 let currentCategoryId = null;
 let currentCategoryName = "";
 // Открытие категории - для просмотра курсов-материалов
@@ -106,9 +108,9 @@ async function loadCategoryCourses() {
                     <span>Открыть программу курса</span>
                 </div>
             `;
+            // Вызов отрисовки структуры курса
             card.addEventListener("click", () => {
-                // Логика открытия структуры курса (на будущее)
-                alert(`Открываем структуру курса: ${course.title}`);
+                openCourseStructure(course.id, currentCategoryId, currentCategoryName, sessionData);
             });
             grid.appendChild(card);
         });
