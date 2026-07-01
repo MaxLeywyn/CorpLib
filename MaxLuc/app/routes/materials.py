@@ -94,10 +94,10 @@ def create_material():
 def log_download(id):
     user_id = request.json.get('user_id')
     if not user_id:
-        return jsonify({"error": "User ID required"}), 400
+        return jsonify({"error": "Нет UserID"}), 400
 
     log_entry = DownloadHistory(user_id=user_id, material_id=id)
     db.session.add(log_entry)
     db.session.commit()
-    return jsonify({"status": "success", "message": "Download history updated"}), 200
+    return jsonify({"status": "success", "message": "История скачиваний апдейтнута"}), 200
 
