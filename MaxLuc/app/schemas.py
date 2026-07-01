@@ -33,7 +33,7 @@ class CourseSchema(ma.SQLAlchemyAutoSchema):
         include_fk = True
     modules = ma.Nested(CourseModuleSchema, many=True)
 
-# Экспортируем инстансы для переиспользования в роутах
+#инстансы для переиспользования в роутах
 material_schema = MaterialSchema()
 materials_schema = MaterialSchema(many=True)
 course_schema = CourseSchema()

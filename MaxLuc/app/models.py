@@ -1,7 +1,7 @@
 from datetime import datetime
 from MaxLuc.app.extensions import db
 
-# Простая таблица связи Многие-ко-Многим (Материал <-> Тег)
+#таблица связи Многие-ко-Многим (Материал <-> Тег)
 material_tags = db.Table('material_tags',
                          db.Column('material_id', db.Integer, db.ForeignKey('materials.id', ondelete='CASCADE'),
                                    primary_key=True),

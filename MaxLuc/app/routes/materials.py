@@ -4,11 +4,13 @@ from MaxLuc.app.models import Material, Tag, DownloadHistory
 from MaxLuc.app.schemas import material_schema, materials_schema
 from sqlalchemy import or_
 
+from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
 
 materials_bp = Blueprint('materials', __name__, url_prefix='/api/materials')
 
-
+#ToDO: Поиск. Пока так, дальше согласовать с Саней надо
 @materials_bp.route('', methods=['GET'])
+@login_required
 def get_materials():
     """
     Каталог материалов с фильтрацией по типу, категориям, тегам и полнотекстовым поиском
@@ -16,22 +18,22 @@ def get_materials():
     try:
         query = Material.query
 
-        # 1. Фильтр по типу контента (book / video)
+        #фильтр по типу контента (book / video)
         mat_type = request.args.get('type')
         if mat_type:
             query = query.filter(Material.type == mat_type)
 
-        # 2. Фильтр по категории
+        # фильтр по категории
         category_id = request.args.get('category_id')
         if category_id:
             query = query.filter(Material.category_id == category_id)
 
-        # 3. НОВОЕ: Фильтр по тегу (делаем JOIN с таблицей тегов)
+        #фильтр по тегу
         tag_name = request.args.get('tag')
         if tag_name:
             query = query.join(Material.tags).filter(Tag.name == tag_name)
 
-        # 4. Поиск по подстроке (Регистронезависимый)
+        #поиск по подстроке
         search = request.args.get('search')
         if search:
             search_fmt = f"%{search}%"
@@ -51,6 +53,7 @@ def get_materials():
 
 
 @materials_bp.route('/<int:id>', methods=['GET'])
+@login_required
 def get_material_item(id):
     material = Material.query.get_or_404(id)
     return jsonify(material_schema.dump(material)), 200
