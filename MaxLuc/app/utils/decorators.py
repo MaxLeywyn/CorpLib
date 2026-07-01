@@ -16,7 +16,7 @@ def login_required(f):
         if not user_id:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: требуется авторизация (не передан X-User-Id)"
+                "message": "в заголовках запроса не передан X-User-Id"
             }), 401
 
 
@@ -25,7 +25,7 @@ def login_required(f):
         if not user:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: сессия недействительна (пользователь не найден)"
+                "message": "сессия недействительна (ну или пользователь не найден)"
             }), 401
 
 
@@ -46,21 +46,21 @@ def admin_required(f):
         if not user_id:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: в заголовках запроса не передан X-User-Id"
+                "message": "в заголовках запроса не передан X-User-Id"
             }), 401
 
         user = User.query.get(user_id)
         if not user:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: пользователь не найден в системе"
+                "message": "пользователь не найден в системе"
             }), 401
 
         user_role = user.role.name if user.role else 'employee'
         if user_role not in ['admin', 'superuser']:
             return jsonify({
                 "status": "error",
-                "message": f"Доступ запрещен: ваша роль ({user_role}) не имеет прав администратора"
+                "message": f"роль ({user_role}) не имеет прав администратора"
             }), 403
 
         return f(*args, **kwargs)
@@ -80,21 +80,21 @@ def superuser_required(f):
         if not user_id:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: в заголовках запроса не передан X-User-Id"
+                "message": "В заголовках запроса не передан X-User-Id"
             }), 401
 
         user = User.query.get(user_id)
         if not user:
             return jsonify({
                 "status": "error",
-                "message": "Доступ запрещен: пользователь не найден в системе"
+                "message": "пользователь не найден в системе"
             }), 401
 
         user_role = user.role.name if user.role else 'employee'
         if user_role != 'superuser':
             return jsonify({
                 "status": "error",
-                "message": f"Доступ запрещен: ваша роль ({user_role}) не имеет прав администратора"
+                "message": f"Нельзя: роль ({user_role}) не имеет прав администратора"
             }), 403
 
         return f(*args, **kwargs)

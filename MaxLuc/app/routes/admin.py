@@ -114,7 +114,7 @@ def create_category():
         if not name_input:
             return jsonify({
                 "status": "error",
-                "message": "Поле 'name' (название категории) обязательно для заполнения"
+                "message": "Поле name обязательно для заполнения"
             }), 400
 
 
@@ -195,7 +195,7 @@ def update_category(category_id):
             if existing_category:
                 return jsonify({
                     "status": "error",
-                    "message": f"Не удалось переименовать: категория '{name_input}' уже существует"
+                    "message": f"Категория '{name_input}' уже существует"
                 }), 400
             category.name = name_input
 
@@ -261,7 +261,7 @@ def update_user_role(target_user_id):
 
         target_user = User.query.get(target_user_id)
         if not target_user:
-            return jsonify({"status": "error", "message": "Целевой пользователь не найден"}), 404
+            return jsonify({"status": "error", "message": "Пользователь не найден"}), 404
 
         data = request.get_json() or {}
         new_role_name = data.get('role') # 'admin' (назначить HR) или 'employee' (снять HR)
@@ -283,7 +283,7 @@ def update_user_role(target_user_id):
 
         role = Role.query.filter_by(name=new_role_name).first()
         if not role:
-            return jsonify({"status": "error", "message": f"Роль '{new_role_name}' не настроена в БД"}), 500
+            return jsonify({"status": "error", "message": f"Роли '{new_role_name}' нет"}), 500
 
 
         old_role = target_user.role.name if target_user.role else 'employee'
@@ -345,7 +345,7 @@ def get_category_courses(category_id):
     Возвращает список курсов, привязанных к конкретной категории
     """
     try:
-        #существует ли вообще такая категория
+
         category = Category.query.get(category_id)
         if not category:
             return jsonify({"status": "error", "message": "Категория не найдена"}), 404
