@@ -142,7 +142,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const response = await fetch(`${API_BASE_URL}/admin/categories`, {
                 method: "GET",
                 headers: {
-                    "X-User-Id": currentUser.id
+                    "Authorization": `Bearer ${currentUser.token}` // Обновление под токен
                 }
             });
 
@@ -279,7 +279,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "POST",
                     headers: {
                         "Content-Type": "application/json",
-                        "X-User-Id": currentUser.id
+                        "Authorization": `Bearer ${currentUser.token}`
                     },
                     body: JSON.stringify({ name: nameInput, description: descInput })
                 });
@@ -315,7 +315,7 @@ document.addEventListener("DOMContentLoaded", () => {
                     method: "PUT",
                     headers: {
                         "Content-Type": "application/json",
-                        "X-User-Id": currentUser.id
+                        "Authorization": `Bearer ${currentUser.token}`
                     },
                     body: JSON.stringify({ name: updatedName, description: updatedDesc })
                 });
@@ -344,7 +344,7 @@ document.addEventListener("DOMContentLoaded", () => {
             const response = await fetch(`${API_BASE_URL}/admin/categories/${categoryIdToDelete}`, {
                 method: "DELETE",
                 headers: {
-                    "X-User-Id": currentUser.id
+                    "Authorization": `Bearer ${currentUser.token}`
                 }
             });
 
@@ -367,9 +367,12 @@ document.addEventListener("DOMContentLoaded", () => {
         listBody.innerHTML = "<div style='padding: 20px; text-align: center;'>Загрузка списка пользователей...</div>";
 
         try {
+            // Обновление под токен
             const response = await fetch(`${API_BASE_URL}/admin/users`, {
                 method: "GET",
-                headers: { "X-User-Id": currentUser.id }
+                headers: {
+                    "Authorization": `Bearer ${currentUser.token}`
+                }
             });
 
             if (!response.ok) {
@@ -456,7 +459,7 @@ document.addEventListener("DOMContentLoaded", () => {
                         method: "PUT",
                         headers: {
                             "Content-Type": "application/json",
-                            "X-User-Id": currentUser.id
+                            "Authorization": `Bearer ${currentUser.token}` // Обновление под токен
                         },
                         body: JSON.stringify({ role: newRole })
                     });
