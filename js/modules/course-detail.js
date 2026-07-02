@@ -7,15 +7,17 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
     detailContainer.innerHTML = "<p style='color: var(--text-muted); padding: 20px;'>Загрузка программы курса...</p>";
 
     try {
+        // Обновление под токен
         const response = await fetch(`${API_BASE_URL}/courses/${courseId}/structure`, {
             method: "GET",
-            headers: { "X-User-Id": currentUser.id }
+            headers: {
+                "Authorization": `Bearer ${currentUser.token}`
+            }
         });
 
         if (!response.ok) throw new Error("Ошибка при загрузке структуры курса");
         const courseData = await response.json();
 
-        // Отрисовка адаптивного интерфейса программы курса
         detailContainer.innerHTML = `
             <div class="course-structure-wrapper" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
                 <button id="btn-back-to-category-items" class="btn-back">← Назад к материалам категории</button>
@@ -39,14 +41,12 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
             </div>
         `;
 
-        // Возврат на уровень материалов текущей категории
         document.getElementById("btn-back-to-category-items").addEventListener("click", () => {
             openCategoryDetails(currentCategoryId, currentCategoryName, currentUser);
         });
 
         const modulesListContainer = document.getElementById("course-modules-list");
 
-        // Отображение модулей курса
         courseData.modules.forEach(module => {
             const moduleBlock = document.createElement("div");
             moduleBlock.className = "module-accordion-item";
@@ -64,7 +64,6 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
             if (module.materials.length === 0) {
                 lessonsContainer.innerHTML = "<p style='color: var(--text-muted); font-size: 13px; padding: 8px 0;'>В этом модуле еще нет учебных материалов.</p>";
             }
-
             // Отображение строк с уроками-материалами внутри модуля
             module.materials.forEach(material => {
                 const lessonRow = document.createElement("div");
@@ -81,11 +80,36 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
                         <span style="font-weight: 500; color: var(--text-main);">${material.title}</span>
                         <span style="font-size: 11px; color: var(--primary-blue); background: #e3f2fd; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">${typeLabel}</span>
                     </div>
-                    <button class="btn-outline" style="padding: 6px 14px; font-size: 13px; min-width: 90px;">Изучить?</button>
+                    <button class="btn-outline" style="padding: 6px 14px; font-size: 13px; min-width: 90px;">Изучить</button>
                 `;
 
-                lessonRow.querySelector("button").addEventListener("click", () => {
-                    alert(`Открываем урок: ${material.title}. Тест`);
+                // Логика изучения курса (сырая)
+                lessonRow.querySelector("button").addEventListener("click", async () => {
+                    try {
+                        // Особенность от бека - проверить оба случая
+                        const exactMaterialId = material.id || material.material_id || 0;
+
+                        console.log("ID материала:", exactMaterialId); // Отладка
+
+                        const trackResponse = await fetch(`${API_BASE_URL}/history/track`, {
+                            method: "POST",
+                            headers: {
+                                "Content-Type": "application/json",
+                                "Authorization": `Bearer ${currentUser.token}`
+                            },
+                            body: JSON.stringify({ material_id: exactMaterialId })
+                        });
+
+                        if (trackResponse.ok) {
+                            alert(`Урок "${material.title}" успешно пройден! Прогресс обновлен`);
+                            openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
+                        } else {
+                            const errData = await trackResponse.json();
+                            alert(errData.message || "Не удалось зафиксировать изучение");
+                        }
+                    } catch (error) {
+                        alert("Ошибка сети при отправке данных о прогрессе");
+                    }
                 });
 
                 lessonsContainer.appendChild(lessonRow);
