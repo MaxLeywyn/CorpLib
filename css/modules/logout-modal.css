@@ -1,0 +1,33 @@
+/* Окно подтверждения выхода из аккаунта */
+.modal-logout-window {
+    max-width: 360px;
+    text-align: center;
+}
+/* Заголовок окна */
+.modal-logout-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: var(--text-main);
+}
+/* Основной текст */
+.modal-logout-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.modal-logout-footer {
+    justify-content: center;
+    gap: 12px;
+    padding: 0;
+    border: none;
+}
+
+.btn-logout-cancel {
+    padding: 8px 20px;
+}
+
+.btn-logout-confirm {
+    background-color: #d93025;
+    padding: 8px 20px;
+}

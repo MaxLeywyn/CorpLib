@@ -1,0 +1,83 @@
+/* Форма и окно загрузки новых файлов (Книг/Видео) */
+.modal-upload-window {
+    max-width: 500px;
+    width: 100%;
+    padding: 24px;
+}
+
+.modal-upload-title {
+    margin-bottom: 18px;
+    font-size: 20px;
+    color: var(--text-main);
+    font-weight: 600;
+}
+
+.upload-form {
+    display: flex;
+    flex-direction: column;
+    gap: 14px;
+}
+
+.upload-input-group {
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+}
+
+.upload-input-group-top {
+    margin-top: 5px;
+}
+
+.upload-label-muted {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-muted);
+}
+
+.upload-label-main {
+    font-size: 13px;
+    font-weight: 600;
+    color: var(--text-main);
+}
+
+.upload-select,
+.upload-input-text {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+}
+
+.upload-select {
+    background: #fff;
+}
+
+.upload-textarea {
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid var(--border-color);
+    font-size: 14px;
+    resize: vertical;
+    font-family: inherit;
+}
+
+.upload-input-file {
+    font-size: 13px;
+    padding: 4px 0;
+}
+
+.modal-upload-footer {
+    margin-top: 12px;
+    padding: 12px 0 0;
+    border-top: 1px solid var(--border-color);
+    justify-content: flex-end;
+    gap: 12px;
+}
+
+.btn-upload-cancel {
+    padding: 8px 18px;
+}
+
+.btn-upload-submit {
+    padding: 8px 22px;
+}

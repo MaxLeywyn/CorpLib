@@ -1,0 +1,33 @@
+/* Окно подтверждения удаления категории */
+.modal-delete-window {
+    max-width: 360px;
+    text-align: center;
+}
+/* Заголовок окна */
+.modal-delete-title {
+    margin-bottom: 12px;
+    font-size: 18px;
+    color: var(--text-main);
+}
+/* Текст в окне */
+.modal-delete-text {
+    font-size: 14px;
+    color: var(--text-muted);
+    margin-bottom: 24px;
+}
+
+.modal-delete-footer {
+    justify-content: center;
+    gap: 12px;
+    padding: 0;
+    border: none;
+}
+
+.btn-confirm-no {
+    padding: 8px 20px;
+}
+
+.btn-confirm-yes-danger {
+    background-color: #d93025;
+    padding: 8px 20px;
+}

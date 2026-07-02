@@ -1,0 +1,10 @@
+/* Дополнительные стили элементов шапки */
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+}
+
+#add-category-btn {
+    display: none;
+}
