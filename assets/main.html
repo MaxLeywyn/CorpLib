@@ -6,7 +6,15 @@
     <title>Панель управления | Библиотека</title>
     <link rel="stylesheet" href="../css/global.css">
     <link rel="stylesheet" href="../css/main-layout.css">
+
+    <link rel="stylesheet" href="../css/modules/header.css">
+    <link rel="stylesheet" href="../css/modules/users-management.css">
     <link rel="stylesheet" href="../css/modules/category-detail.css">
+    <link rel="stylesheet" href="../css/modules/material-detail.css">
+    <link rel="stylesheet" href="../css/modules/delete-category.css">
+    <link rel="stylesheet" href="../css/modules/logout-modal.css">
+    <link rel="stylesheet" href="../css/modules/material-upload.css">
+
     <link rel="icon" href="../icon/readIcon.png" type="image/x-icon">
 </head>
 <body>
@@ -18,14 +26,14 @@
         </div>
         <nav class="sidebar-nav">
             <div id="common-block">
-                <a href="#окно-каталога-книг" class="nav-link active">Список категорий</a>
-                <a href="#курсы-сотрудника" class="nav-link">Моё обучение</a>
+                <a href="#" class="nav-link active">Список категорий</a>
+                <a href="#" class="nav-link">Моё обучение</a>
             </div>
 
             <div id="admin-block">
                 <div class="nav-section-title">УПРАВЛЕНИЕ (HR)</div>
                 <a href="#" class="nav-link">Добавить материал</a>
-                <a href="#думаем" class="nav-link">Категории</a>
+                <a href="#" class="nav-link">Категории</a>
             </div>
 
             <div id="superuser-block">
@@ -43,8 +51,8 @@
     <main class="app-content">
         <header class="content-header">
             <h1 id="page-title">Список категорий</h1>
-            <div class="header-actions" style="display: flex; align-items: center; gap: 16px;">
-                <button id="add-category-btn" class="btn-action-blue" style="display: none;">
+            <div class="header-actions">
+                <button id="add-category-btn" class="btn-action-blue">
                     <span>+</span> Добавить категорию
                 </button>
 
@@ -58,17 +66,16 @@
             <div id="categories-container" class="categories-grid">
             </div>
             <!-- Суперюзер: логика назначения/снятия админа -->
-            <div id="users-management-container" class="hidden" style="background: #ffffff; border-radius: 12px; padding: 24px; box-shadow: 0 2px 8px rgba(0,0,0,.08);">
-                <div style="margin-bottom: 20px; color: var(--text-muted); font-size: 14px;">
+            <div id="users-management-container" class="users-management-card hidden">
+                <div class="users-management-subtitle">
                     Управление правами доступа сотрудников компании
                 </div>
                 <!-- Вывод всех пользователей с бека (кроме суперюзера) -->
-                <div class="users-list-header" style="display: grid; grid-template-columns: 2fr 2fr 1fr 40px; padding: 12px 16px; background: var(--warm-blue-bg); font-weight: 600; border-radius: 8px; margin-bottom: 8px;">
+                <div class="users-list-header">
                     <div>ФИО</div>
                     <div>Email</div>
                     <div>Текущая роль</div>
-                    <div></div> <!-- Для иконки назначения/снятия админки -->
-                </div>
+                    <div></div></div> <!-- Для иконки назначения/снятия админки -->
                 <div id="users-list-body">
                 </div>
 
@@ -127,78 +134,78 @@
 </div>
 <!-- Удаление категории -->
 <div id="delete-confirm-modal" class="modal-backdrop hidden">
-    <div class="modal-window" style="max-width: 360px; text-align: center;">
-        <h3 style="margin-bottom: 12px; font-size: 18px; color: var(--text-main);">Удаление категории</h3>
-        <p id="delete-confirm-text" style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+    <div class="modal-window modal-delete-window">
+        <h3 class="modal-delete-title">Удаление категории</h3>
+        <p id="delete-confirm-text" class="modal-delete-text">
             Вы действительно хотите удалить категорию?
         </p>
-        <div class="modal-footer" style="justify-content: center; gap: 12px; padding: 0; border: none;">
-            <button type="button" id="confirm-delete-no" class="btn-outline" style="padding: 8px 20px;">Нет</button>
-            <button type="button" id="confirm-delete-yes" class="btn-action-blue" style="background-color: #d93025; padding: 8px 20px;">Да</button>
+        <div class="modal-footer modal-delete-footer">
+            <button type="button" id="confirm-delete-no" class="btn-outline btn-confirm-no">Нет</button>
+            <button type="button" id="confirm-delete-yes" class="btn-action-blue btn-confirm-yes-danger">Да</button>
         </div>
     </div>
 </div>
 <!-- Модальное окно с подтверждением выхода из аккаунта -->
 <div id="logout-confirm-modal" class="modal-backdrop hidden">
-    <div class="modal-window" style="max-width: 360px; text-align: center;">
-        <h3 style="margin-bottom: 12px; font-size: 18px; color: var(--text-main);">Выход из системы</h3>
-        <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px;">
+    <div class="modal-window modal-logout-window">
+        <h3 class="modal-logout-title">Выход из системы</h3>
+        <p class="modal-logout-text">
             Вы действительно хотите выйти из аккаунта?
         </p>
-        <div class="modal-footer" style="justify-content: center; gap: 12px; padding: 0; border: none;">
-            <button type="button" id="confirm-logout-no" class="btn-outline" style="padding: 8px 20px;">Отмена</button>
-            <button type="button" id="confirm-logout-yes" class="btn-action-blue" style="background-color: #d93025; padding: 8px 20px;">Выйти</button>
+        <div class="modal-footer modal-logout-footer">
+            <button type="button" id="confirm-logout-no" class="btn-outline btn-logout-cancel">Отмена</button>
+            <button type="button" id="confirm-logout-yes" class="btn-action-blue btn-logout-confirm">Выйти</button>
         </div>
     </div>
 </div>
 
 <!-- Модальное окно для загрузки материалов -->
 <div id="material-upload-modal" class="modal-backdrop hidden">
-    <div class="modal-window" style="max-width: 500px; width: 100%; padding: 24px;">
-        <h3 style="margin-bottom: 18px; font-size: 20px; color: var(--text-main); font-weight: 600;">Добавить новый материал</h3>
+    <div class="modal-window modal-upload-window">
+        <h3 class="modal-upload-title">Добавить новый материал</h3>
 
-        <form id="material-upload-form" style="display: flex; flex-direction: column; gap: 14px;">
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Тип контента</label>
-                <select id="upload-material-type" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; background: #fff;">
+        <form id="material-upload-form" class="upload-form">
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Тип контента</label>
+                <select id="upload-material-type" class="upload-select" required>
                     <option value="book">Книга (PDF)</option>
                     <option value="video">Видеоурок (MP4)</option>
                 </select>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Название материала</label>
-                <input type="text" id="upload-material-title" required placeholder="Например: Чистая архитектура" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Название материала</label>
+                <input type="text" id="upload-material-title" class="upload-input-text" required placeholder="Например: Чистая архитектура">
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Автор / Лектор</label>
-                <input type="text" id="upload-material-author" placeholder="Например: Роберт Мартин" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Автор / Лектор</label>
+                <input type="text" id="upload-material-author" class="upload-input-text" placeholder="Например: Роберт Мартин">
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Краткое описание</label>
-                <textarea id="upload-material-description" rows="3" placeholder="О чем данный материал..." style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px; resize: vertical; font-family: inherit;"></textarea>
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Краткое описание</label>
+                <textarea id="upload-material-description" class="upload-textarea" rows="3" placeholder="О чем данный материал..."></textarea>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Теги (через запятую)</label>
-                <input type="text" id="upload-material-tags" placeholder="architecture, backend, clean code" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Теги (через запятую)</label>
+                <input type="text" id="upload-material-tags" class="upload-input-text" placeholder="architecture, backend, clean code">
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 5px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Файл контента (PDF или MP4) *</label>
-                <input type="file" id="upload-material-file" required accept=".pdf,.mp4" style="font-size: 13px; padding: 4px 0;">
+            <div class="upload-input-group upload-input-group-top">
+                <label class="upload-label-main">Файл контента (PDF или MP4) *</label>
+                <input type="file" id="upload-material-file" class="upload-input-file" required accept=".pdf,.mp4">
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 4px;">
-                <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Обложка (Изображение)</label>
-                <input type="file" id="upload-material-cover" accept="image/*" style="font-size: 13px; padding: 4px 0;">
+            <div class="upload-input-group">
+                <label class="upload-label-muted">Обложка (Изображение)</label>
+                <input type="file" id="upload-material-cover" class="upload-input-file" accept="image/*">
             </div>
 
-            <div class="modal-footer" style="margin-top: 12px; padding: 12px 0 0; border-top: 1px solid var(--border-color); justify-content: flex-end; gap: 12px;">
-                <button type="button" id="btn-close-upload-modal" class="btn-outline" style="padding: 8px 18px;">Отмена</button>
-                <button type="submit" id="btn-submit-material" class="btn-action-blue" style="padding: 8px 22px;">Загрузить</button>
+            <div class="modal-footer modal-upload-footer">
+                <button type="button" id="btn-close-upload-modal" class="btn-outline btn-upload-cancel">Отмена</button>
+                <button type="submit" id="btn-submit-material" class="btn-action-blue btn-upload-submit">Загрузить</button>
             </div>
         </form>
     </div>
