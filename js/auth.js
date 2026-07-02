@@ -50,20 +50,16 @@ if (loginForm) {
             });
 
             const data = await response.json();
-
             // Проверка ответа сервер
-            if (response.ok && data.status === "success") {
-                // Сохранение пользователя в localStorage
+            if (response.ok) {
+                // Сохраняем токен и данные сессии
                 localStorage.setItem("currentUser", JSON.stringify({
-                    id: data.user.id,
+                    token: data.token, // Считываем токен
                     email: data.user.login,
                     role: data.user.role,
-                    name: data.user.name
+                    name: data.user.full_name || data.user.name
                 }));
-
-                // переход на главное окно
                 window.location.replace("./main.html");
-
             } else {
                 // Ошибка с бека (пример - неверный пароль)
                 alert(data.message || "Неверный логин или пароль.");
@@ -77,7 +73,7 @@ if (loginForm) {
     });
 }
 
-// Регистрация (лучше вариант)
+// Регистрация (с токеном)
 const registerForm = document.getElementById("register-form");
 
 if (registerForm) {
@@ -108,23 +104,16 @@ if (registerForm) {
 
             const data = await response.json();
 
-            // Обработка ответа сервера
-            if (response.ok && data.status === "success") {
-                alert("Регистрация прошла успешно!");
-                // Автоматически авторизуем пользователя, сохраняя сессию
+            if (response.ok) {
                 localStorage.setItem("currentUser", JSON.stringify({
-                    id: data.user.id,
+                    token: data.token,
                     email: data.user.login,
                     role: data.user.role,
-                    name: data.user.name
+                    name: data.user.full_name || data.user.name
                 }));
-
-                // Перенаправляем в ЛК
                 window.location.replace("./main.html");
-
             } else {
-                // Если бэкенд вернул ошибку (повтор почты?)
-                alert(data.message || "Ошибка при регистрации. Возможно, этот email уже занят.");
+                alert(data.message || "Ошибка при регистрации.");
             }
 
         } catch (error) {
