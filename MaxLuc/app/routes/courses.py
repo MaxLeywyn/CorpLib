@@ -2,25 +2,33 @@ from flask import Blueprint, jsonify, request
 from MaxLuc.app.models import Course, CourseModule, CourseModuleMaterial, UserCourseProgress, Material
 from MaxLuc.app.schemas import course_schema
 from MaxLuc.app.extensions import db
+from flask_jwt_extended import get_jwt_identity
 
+# Импортируем твои обновленные декораторы безопасности
 from MaxLuc.app.utils.decorators import login_required
-
-
 
 courses_bp = Blueprint('courses', __name__, url_prefix='/api/courses')
 
+
 @courses_bp.route('/<int:id>', methods=['GET'])
+@login_required  # Теперь доступ только для авторизованных пользователей
 def get_course_detail(id):
+    """
+    Возвращает базовую информацию о курсе
+    """
     course = Course.query.get_or_404(id)
     return jsonify(course_schema.dump(course)), 200
 
 
-@courses_bp.route('/<int:course_id>/progress/<int:user_id>', methods=['GET'])
-def get_course_progress(course_id, user_id):
+@courses_bp.route('/<int:course_id>/progress', methods=['GET'])
+@login_required  # Защищаем эндпоинт
+def get_course_progress(course_id):
     """
-    Вычисляет процент прохождения курса для конкретного сотрудника
+    Вычисляет процент прохождения курса для ТЕКУЩЕГО авторизованного сотрудника
     """
     try:
+        # ИЗМЕНЕНО: Безопасно вытаскиваем ID юзера прямо из JWT-токена
+        user_id = int(get_jwt_identity())
 
         total_materials_query = db.session.query(CourseModuleMaterial.material_id) \
             .join(CourseModule, CourseModule.id == CourseModuleMaterial.module_id) \
@@ -37,17 +45,16 @@ def get_course_progress(course_id, user_id):
                 "total_count": 0
             }), 200
 
-
         course_material_ids = [item.material_id for item in total_materials_query.all()]
 
-        #считаем, сколько из этих конкретных материалов пользователь отметил как пройденные
+        # Считаем, сколько из этих конкретных материалов пользователь отметил как пройденные
         completed_count = UserCourseProgress.query.filter(
             UserCourseProgress.user_id == user_id,
             UserCourseProgress.material_id.in_(course_material_ids),
             UserCourseProgress.is_completed == True
         ).count()
 
-        #считаем итоговый процент ((выполнено / всего) * 100)
+        # Считаем итоговый процент
         progress_percent = round((completed_count / total_count) * 100, 1)
 
         return jsonify({
@@ -64,7 +71,8 @@ def get_course_progress(course_id, user_id):
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
 
-# -----------------   МОДУЛИ КУРСА
+
+# -----------------   МОДУЛИ КУРСА -----------------
 
 @courses_bp.route('/<int:course_id>/structure', methods=['GET'])
 @login_required
@@ -73,31 +81,30 @@ def get_course_structure(course_id):
     Возвращает структуру курса (Модули -> Материалы) вместе с прогрессом текущего пользователя
     """
     try:
-        user_id = request.headers.get('X-User-Id')
 
+        user_id = int(get_jwt_identity())
 
         course = Course.query.get(course_id)
         if not course:
             return jsonify({"status": "error", "message": "Курс не найден"}), 404
 
-        #весь прогресс пользователя по этому курсу, чтобы не делать запросы в цикле
-        #словарь вида: {(module_id, material_id): is_completed}
+        # Весь прогресс пользователя по этому курсу, чтобы не делать запросы в цикле
+        # Словарь вида: {(module_id, material_id): is_completed}
         user_progress = {}
-        if user_id:
-            progress_records = UserCourseProgress.query.filter_by(user_id=user_id).all()
-            for pr in progress_records:
-                user_progress[(pr.module_id, pr.material_id)] = pr.is_completed
+        progress_records = UserCourseProgress.query.filter_by(user_id=user_id).all()
+        for pr in progress_records:
+            user_progress[(pr.module_id, pr.material_id)] = pr.is_completed
 
-        # дерево курса
+        # Дерево курса
         modules_data = []
         for module in course.modules:
 
             materials_in_module = []
             for cmm in module.materials:
-                # достаем сам материал
+                # Достаем сам материал
                 mat = Material.query.get(cmm.material_id)
                 if mat:
-                    # чек прогресса по словарю
+                    # Чек прогресса по словарю
                     is_completed = user_progress.get((module.id, mat.id), False)
 
                     materials_in_module.append({
@@ -116,7 +123,7 @@ def get_course_structure(course_id):
                 "materials": materials_in_module
             })
 
-        #прогресс курса для вывода красивого статус-бара на фронте (ToDo)
+        # Прогресс курса для вывода красивого статус-бара на фронте
         total_materials = sum(len(m["materials"]) for m in modules_data)
         completed_materials = sum(sum(1 for mat in m["materials"] if mat["is_completed"]) for m in modules_data)
 

@@ -1,102 +1,41 @@
 from functools import wraps
-from flask import request, jsonify
-from MaxLuc.app.models import User
-
+from flask import jsonify
+from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity, get_jwt
 
 def login_required(f):
-    """
-    Проверяет, что пользователь авторизован (существует в БД)
-    Подходит для любых защищенных роутов сотрудника
-    """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_id = request.headers.get('X-User-Id')
-
-        if not user_id:
-            return jsonify({
-                "status": "error",
-                "message": "в заголовках запроса не передан X-User-Id"
-            }), 401
-
-
-        user = User.query.get(user_id)
-
-        if not user:
-            return jsonify({
-                "status": "error",
-                "message": "сессия недействительна (ну или пользователь не найден)"
-            }), 401
-
-
-        return f(*args, **kwargs)
-
+        try:
+            # Проверяет наличие и валидность JWT-токена в заголовках запроса
+            verify_jwt_in_request(locations=["headers"])
+            return f(*args, **kwargs)
+        except Exception:
+            return jsonify({"status": "error", "message": "Доступ запрещен. Токен невалиден или отсутствует."}), 401
     return decorated_function
-
 
 def admin_required(f):
-    """
-    Проверяет, что пользователь имеет права админа/суперюзера
-    """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_id = request.headers.get('X-User-Id')
-
-        if not user_id:
-            return jsonify({
-                "status": "error",
-                "message": "в заголовках запроса не передан X-User-Id"
-            }), 401
-
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({
-                "status": "error",
-                "message": "пользователь не найден в системе"
-            }), 401
-
-        user_role = user.role.name if user.role else 'employee'
-        if user_role not in ['admin', 'superuser']:
-            return jsonify({
-                "status": "error",
-                "message": f"роль ({user_role}) не имеет прав администратора"
-            }), 403
-
-        return f(*args, **kwargs)
+        try:
+            verify_jwt_in_request(locations=["headers"])
+            claims = get_jwt() # Достаем зашитые в токен claims (права)
+            if claims.get("role") not in ["admin", "superuser"]:
+                return jsonify({"status": "error", "message": "Недостаточно прав (Требуется роль HR/Admin)"}), 403
+            return f(*args, **kwargs)
+        except Exception:
+            return jsonify({"status": "error", "message": "Ошибка авторизации"}), 401
 
     return decorated_function
 
-
 def superuser_required(f):
-    """
-    Проверяет, что пользователь имеет права \суперюзера
-    """
-
     @wraps(f)
     def decorated_function(*args, **kwargs):
-        user_id = request.headers.get('X-User-Id')
-
-        if not user_id:
-            return jsonify({
-                "status": "error",
-                "message": "В заголовках запроса не передан X-User-Id"
-            }), 401
-
-        user = User.query.get(user_id)
-        if not user:
-            return jsonify({
-                "status": "error",
-                "message": "пользователь не найден в системе"
-            }), 401
-
-        user_role = user.role.name if user.role else 'employee'
-        if user_role != 'superuser':
-            return jsonify({
-                "status": "error",
-                "message": f"Нельзя: роль ({user_role}) не имеет прав администратора"
-            }), 403
-
-        return f(*args, **kwargs)
-
+        try:
+            verify_jwt_in_request(locations=["headers"])
+            claims = get_jwt()
+            if claims.get("role") != "superuser":
+                return jsonify({"status": "error", "message": "Строго ограниченный доступ (Требуется Superuser)"}), 403
+            return f(*args, **kwargs)
+        except Exception:
+            return jsonify({"status": "error", "message": "Ошибка авторизации"}), 401
     return decorated_function
