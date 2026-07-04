@@ -1,44 +1,38 @@
 from flask import Blueprint, jsonify, request
 from MaxLuc.app.models import User, Role
 from MaxLuc.app.extensions import db
+from werkzeug.security import check_password_hash
+from flask_jwt_extended import create_access_token
+from werkzeug.security import generate_password_hash
 
 auth_bp = Blueprint('auth', __name__, url_prefix='/api/auth')
 
+
 @auth_bp.route('/login', methods=['POST'])
 def login():
-    """
-    Эндпоинт авторизации для фронтенда
-    """
-    try:
-        data = request.get_json() or {}
-        login_input = data.get('login')
-        password_input = data.get('password')
+    data = request.get_json() or {}
+    login_input = data.get('login')
+    password_input = data.get('password')
 
-        if not login_input or not password_input:
-            return jsonify({"status": "error", "message": "Логин и пароль обязательны"}), 400
+    user = User.query.filter_by(login=login_input).first()
 
-        #поиск пользователя в БД по логину (email)
-        user = User.query.filter_by(login=login_input).first()
+    # Предполагаем, что у тебя пароли проверяются через хеш
+    if not user or not check_password_hash(user.password_hash, password_input):
+        return jsonify({"status": "error", "message": "Неверный логин или пароль"}), 401
 
-        if not user or user.password_hash != password_input:
-            return jsonify({"status": "error", "message": "Неверный логин или пароль"}), 401
+    # Зашиваем в токен identity (обычно ID) и дополнительные данные (роль)
+    additional_claims = {"role": user.role.name if user.role else "employee"}
+    access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
 
-        role_name = user.role.name if user.role else "employee"
-
-        # ответ фронту
-        return jsonify({
-            "status": "success",
-            "message": "Авторизация успешна",
-            "user": {
-                "id": user.id,
-                "login": user.login,
-                "name": user.full_name,
-                "role": role_name
-            }
-        }), 200
-
-    except Exception as e:
-        return jsonify({"status": "error", "message": str(e)}), 500
+    return jsonify({
+        "status": "success",
+        "token": access_token,  # Передаем токен фронтенду
+        "user": {
+            "id": user.id,
+            "full_name": user.full_name,
+            "role": additional_claims["role"]
+        }
+    }), 200
 
 
 
@@ -46,7 +40,7 @@ def login():
 @auth_bp.route('/register', methods=['POST'])
 def register():
     """
-    Эндпоинт регистрации нового сотрудника
+    Эндпоинт регистрации нового сотрудника с безопасным хешированием пароля
     """
     try:
         data = request.get_json() or {}
@@ -69,14 +63,17 @@ def register():
 
         role = Role.query.filter_by(name="employee").first()
         if not role:
-            #на случай, если база пустая
+            # на случай, если база пустая
             role = Role(name="employee")
             db.session.add(role)
             db.session.flush()
 
+        # ИЗМЕНЕНО: Хешируем сырой пароль перед записью в базу данных
+        hashed_password = generate_password_hash(password_input)
+
         new_user = User(
             login=login_input,
-            password_hash=password_input,
+            password_hash=hashed_password,  # Сохраняем безопасный хеш
             full_name=full_name_input,
             role_id=role.id
         )
@@ -96,4 +93,5 @@ def register():
         }), 201
 
     except Exception as e:
+        db.session.rollback()  # Хорошая практика — откатить транзакцию при ошибке
         return jsonify({"status": "error", "message": str(e)}), 500
