@@ -179,28 +179,26 @@ async function loadCategoryStandaloneMaterials() {
             const coverUrl = material.cover_url || '../icon/readIcon.png';
 
             card.innerHTML = `
-                <div class="material-card-cover-left" style="width: 70px; height: 90px; min-width: 70px; background: #f0f4f8; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
-                    <img src="${coverUrl}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
-                </div>
+    <div class="material-card-cover-left" style="width: 70px; height: 90px; min-width: 70px; background: #f0f4f8; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
+        <img src="${coverUrl}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
+    </div>
+    <div class="material-info" style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+            <span class="material-row-title" style="font-weight: 600; color: var(--text-main); font-size: 16px;">${material.title}</span>
+            <span class="material-type-tag ${typeClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${typeLabel}</span>
+        </div>
+        <div class="material-row-meta" style="font-size: 13px; color: var(--text-muted);">
+            ${metaInfo} | Размер: ${(material.file_size / (1024 * 1024)).toFixed(2)} МБ
+        </div>
+        <p style="margin: 0; font-size: 13px; color: #5f6368; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
+            ${material.description || 'Без описания'}
+        </p>
+    </div>
+    <span class="material-open-arrow" style="color: var(--text-muted); font-size: 18px; margin-left: 8px;">›</span>
+`;
 
-                <div class="material-info" style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
-                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-                        <span class="material-row-title" style="font-weight: 600; color: var(--text-main); font-size: 16px;">${material.title}</span>
-                        <span class="material-type-tag ${typeClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${typeLabel}</span>
-                    </div>
-                    <div class="material-row-meta" style="font-size: 13px; color: var(--text-muted);">
-                        ${metaInfo} | Размер: ${(material.file_size / (1024 * 1024)).toFixed(2)} МБ
-                    </div>
-                    <p style="margin: 0; font-size: 13px; color: #5f6368; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
-                        ${material.description || 'Без описания'}
-                    </p>
-                </div>
-                
-                <button class="btn-outline" style="padding: 8px 16px; font-size: 13px; min-width: 90px; cursor: pointer;">Открыть</button>
-            `;
-
-            // При нажатии кнопки "Открыть" запуск отрисовки экрана материала
-            card.querySelector("button").addEventListener("click", () => {
+// Клик по ВСЕЙ карточке открывает материал
+            card.addEventListener("click", () => {
                 openMaterialDetails(material.id, currentCategoryId, currentCategoryName, currentUserData);
             });
 
@@ -221,9 +219,31 @@ function initAdminActionEvents() {
         alert(`Тест создания курса для категории ID: ${currentCategoryId}`); // Далее обработаем
     });
 
-    // Кнопка "Загрузить материал" — открывает наше модальное окно
+    // Кнопка "Загрузить материал" — открытие модального окна
     document.getElementById("btn-create-material").addEventListener("click", () => {
         const modal = document.getElementById("material-upload-modal");
+        const typeSelect = document.getElementById("upload-material-type");
+        const fileInput = document.getElementById("upload-material-file");
+        // Привязка типов, для книг - пдф, для видео - mp4
+        if (typeSelect && fileInput) {
+            typeSelect.addEventListener("change", (e) => {
+                const selectedType = e.target.value;
+                if (selectedType === "book") {
+                    fileInput.accept = ".pdf";
+                    fileInput.setAttribute("accept", ".pdf");
+                } else if (selectedType === "video") {
+                    fileInput.accept = ".mp4,video/mp4";
+                    fileInput.setAttribute("accept", ".mp4,video/mp4");
+                }
+            });
+
+            // Установить начальное значение
+            if (typeSelect.value === "book") {
+                fileInput.accept = ".pdf";
+            } else {
+                fileInput.accept = ".mp4,video/mp4";
+            }
+        }
         if (modal) modal.classList.remove("hidden");
     });
 
