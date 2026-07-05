@@ -130,7 +130,7 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
                         }
                     });
 
-                    // Логика Админа (Редактирование) - простое переименование через prompt (или подключи свою форму)
+                    // Логика Админа (Редактирование)
                     const btnEdit = lessonRow.querySelector('.btn-edit-mat');
                     btnEdit.addEventListener('click', async () => {
                         const newTitle = prompt("Введите новое название материала:", material.title);
