@@ -48,3 +48,25 @@ body {
 .btn-primary:hover {
     background-color: var(--hover-blue);
 }
+/* Для всех кликабельных элементов курсор - поинтер */
+.category-card,
+.material-row-card,
+.nav-item,
+.nav-link,
+.sidebar-logo-link,
+.btn,
+.btn-action-blue,
+.btn-outline,
+.category-menu-btn,
+.category-dropdown-item,
+.user-menu-btn,
+.change-role-btn,
+.toggle-link,
+.toggle-password-btn {
+    cursor: pointer;
+}
+
+/* Также ссылки */
+a {
+    cursor: pointer;
+}
