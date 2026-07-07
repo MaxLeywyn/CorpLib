@@ -13,7 +13,7 @@ from MaxLuc.app.utils.decorators import admin_required, login_required
 
 materials_bp = Blueprint('materials', __name__, url_prefix='/api/materials')
 
-# Допустимые расширения файлов по ТЗ
+# допустимые расширения файлов по ТЗ
 ALLOWED_BOOK_EXTENSIONS = {'pdf'}
 ALLOWED_VIDEO_EXTENSIONS = {'mp4'}
 ALLOWED_COVER_EXTENSIONS = {'png', 'jpg', 'jpeg', 'webp'}
@@ -175,16 +175,18 @@ def search_catalog():
 @admin_required
 def upload_material():
     """
-    Эндпоинт загрузки материалов (Книг и Видео) администратором в формате multipart/form-data
+    Эндпоинт загрузки материалов.
+    Если передан module_id, материал сразу привязывается к указанному модулю курса.
     """
     try:
-        # 1. Получаем текстовые данные из request.form
         material_type = request.form.get('type')  # 'book' или 'video'
         title = request.form.get('title')
         author = request.form.get('author', '')
         description = request.form.get('description', '')
         category_id = request.form.get('category_id')
-        tags_raw = request.form.get('tags', '')  # Строка тегов через запятую от Сани
+        tags_raw = request.form.get('tags', '')
+
+        module_id = request.form.get('module_id')
 
         if not material_type or not title or not category_id:
             return jsonify({"status": "error", "message": "Поля type, title и category_id обязательны"}), 400
@@ -192,12 +194,17 @@ def upload_material():
         if material_type not in ['book', 'video']:
             return jsonify({"status": "error", "message": "Неверный тип материала. Ожидается 'book' или 'video'"}), 400
 
-        # Проверяем существование категории
         category = Category.query.get(category_id)
         if not category:
             return jsonify({"status": "error", "message": "Указанная категория не существует"}), 404
 
-        # 2. Обработка файлов из request.files
+        if module_id:
+            from MaxLuc.app.models import CourseModule  # Локальный импорт во избежание круговых зависимостей
+            module = CourseModule.query.get(module_id)
+            if not module:
+                return jsonify({"status": "error", "message": "Указанный модуль курса не найден"}), 404
+
+        # Обработка файлов из request.files
         file_obj = request.files.get('file')
         cover_obj = request.files.get('cover')
 
@@ -222,9 +229,9 @@ def upload_material():
         if file_obj:
             file_path = save_file(file_obj, subfolder, allowed_exts)
             full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_path)
-            file_size = os.path.getsize(full_path) // 1024  # Переводим в КБ
+            file_size = os.path.getsize(full_path) // 1024  # В КБ
 
-        # 3. Создаем объект материала
+        #объект материала
         new_material = Material(
             type=material_type,
             title=title,
@@ -235,9 +242,9 @@ def upload_material():
             cover_url=cover_path,
             file_size=file_size
         )
-
         db.session.add(new_material)
 
+        # Обработка тегов
         if tags_raw:
             tag_list = [t.strip() for t in tags_raw.split(',') if t.strip()]
             for tag_name in tag_list:
@@ -247,12 +254,25 @@ def upload_material():
                     db.session.add(tag)
                 new_material.tags.append(tag)
 
-        # Финальный коммит сохранит и материал, и новые теги, и их связи
+        #генерируем ID материала внутри текущей транзакции
+        db.session.flush()
+
+        if module_id:
+            sort_order_val = request.form.get('sort_order', 0)
+
+            new_link = CourseModuleMaterial(
+                module_id=int(module_id),
+                material_id=new_material.id,
+                sort_order=int(sort_order_val)
+            )
+            db.session.add(new_link)
+
+        # Финальный коммит (Материал + Теги + Связь с модулем)
         db.session.commit()
 
         return jsonify({
             "status": "success",
-            "message": f"Материал '{title}' успешно загружен.",
+            "message": f"Материал '{title}' успешно загружен и добавлен в модуль." if module_id else f"Материал '{title}' успешно загружен в общий каталог.",
             "material": material_schema.dump(new_material)
         }), 201
 
@@ -260,14 +280,9 @@ def upload_material():
         return jsonify({"status": "error", "message": str(val_err)}), 400
     except Exception as e:
         db.session.rollback()
-        # Этот принт покажет точный traceback в терминале, если что-то пойдет не так с базой
-        print(f"CRITICAL UPLOAD ERROR: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-# ==============================================================================
-# 3. СКАЧИВАНИЕ ФАЙЛОВ И СИНХРОНИЗАЦИЯ ПРОГРЕССА
-# ==============================================================================
 @materials_bp.route('/<int:material_id>/download', methods=['GET'])
 @login_required
 def download_material(material_id):
@@ -282,7 +297,7 @@ def download_material(material_id):
 
         user_id = int(get_jwt_identity())
 
-        # 1. Записываем факт скачивания в общую историю доступа
+        # записываем факт скачивания в общую историю доступа
         log_entry = DownloadHistory(
             user_id=user_id,
             material_id=material.id,
@@ -290,10 +305,8 @@ def download_material(material_id):
         )
         db.session.add(log_entry)
 
-        # 2. СИНХРОНИЗАЦИЯ ПРОГРЕССА: Ищем модули курсов, в которые встроен этот файл
         linked_modules = CourseModuleMaterial.query.filter_by(material_id=material.id).all()
 
-        # 3. Автоматически закрываем уроки как пройденные
         for link in linked_modules:
             existing_progress = UserCourseProgress.query.filter_by(
                 user_id=user_id,
@@ -316,7 +329,6 @@ def download_material(material_id):
 
         db.session.commit()
 
-        # 4. Безопасно выгружаем файл из директории
         directory = os.path.join(current_app.config['UPLOAD_FOLDER'], os.path.dirname(material.file_url))
         filename = os.path.basename(material.file_url)
 
@@ -332,9 +344,6 @@ def download_material(material_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-# ==============================================================================
-# 1. ПОЛУЧЕНИЕ ДЕТАЛКИ ОДНОГО МАТЕРИАЛА (Для страницы Сани)
-# ==============================================================================
 @materials_bp.route('/<int:id>', methods=['GET'])
 @login_required
 def get_material_item(id):
@@ -343,19 +352,12 @@ def get_material_item(id):
     """
     material = Material.query.get_or_404(id)
 
-    # Сериализуем базовые поля через схему
     data = material_schema.dump(material)
 
-    # 1. Переводим КБ обратно в байты для Сани
     data['file_size'] = (material.file_size or 0) * 1024
 
-    # 2. Переводим теги в плоский массив строк
     data['tags'] = [tag.name for tag in material.tags]
 
-    # ==============================================================================
-    # КРИТИЧЕСКОЕ ИСПРАВЛЕНИЕ ДЛЯ ССЫЛОК И КАРТИНОК:
-    # request.host_url динамически определит адрес твоего бэка (например, http://100.67.122.68:5000/)
-    # ==============================================================================
     base_url = request.host_url.rstrip('/')
 
     if material.file_url:
@@ -366,13 +368,11 @@ def get_material_item(id):
     if material.cover_url:
         data['cover_url'] = f"{base_url}/api/materials/static/{material.cover_url}"
     else:
-        data['cover_url'] = None  # Если обложки нет, у Сани сработает дефолтная заглушка
+        data['cover_url'] = None
 
     return jsonify(data), 200
 
-# ==============================================================================
-# 2. ФИКСАЦИЯ СКАЧИВАНИЯ / ПРОСМОТРА (POST запрос Сани)
-# ==============================================================================
+
 @materials_bp.route('/<int:material_id>/download', methods=['POST'])
 @login_required
 def log_material_access(material_id):
@@ -384,7 +384,7 @@ def log_material_access(material_id):
         material = Material.query.get_or_404(material_id)
         user_id = int(get_jwt_identity())
 
-        # 1. Записываем факт доступа в общую историю
+        #записываем факт доступа в общую историю
         log_entry = DownloadHistory(
             user_id=user_id,
             material_id=material.id,
@@ -392,10 +392,10 @@ def log_material_access(material_id):
         )
         db.session.add(log_entry)
 
-        # 2. СИНХРОНИЗАЦИЯ ПРОГРЕССА: Ищем модули, где есть этот материал
+        # Ищем модули, где есть этот материал
         linked_modules = CourseModuleMaterial.query.filter_by(material_id=material.id).all()
 
-        # 3. Автоматически проставляем сотруднику выполнение
+        # Автоматически проставляем выполнение
         for link in linked_modules:
             existing_progress = UserCourseProgress.query.filter_by(
                 user_id=user_id,
@@ -427,18 +427,16 @@ def log_material_access(material_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
-# ==============================================================================
-# 3. РАЗДАЧА СТАТИКИ (Чтобы видео воспроизводилось, а книги качались)
-# ==============================================================================
+
+#РАЗДАЧА СТАТИКИ
 @materials_bp.route('/static/<path:filename>', methods=['GET'])
 def serve_uploaded_file(filename):
     """
     Эндпоинт для физической отдачи файлов.
-    Сюда будут стучаться Санин плеер и ссылка скачивания.
     """
-    # Отдаем файл напрямую из папки uploads
+
     return send_from_directory(
         current_app.config['UPLOAD_FOLDER'],
         filename,
-        conditional=True  # Важно для видео: позволяет перематывать плеер назад/вперед!
+        conditional=True
     )

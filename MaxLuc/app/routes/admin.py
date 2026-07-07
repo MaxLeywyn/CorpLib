@@ -1,9 +1,9 @@
-from flask import Blueprint, jsonify, request
+from flask import Blueprint, jsonify, request, current_app
 from MaxLuc.app.extensions import db
 from MaxLuc.app.models import Material, Course, Category, CourseModuleMaterial, User, Role
 from sqlalchemy import func
 from flask_jwt_extended import get_jwt_identity
-
+import os
 # Импортируем твои обновленные декораторы, которые работают на JWT
 from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
 
@@ -17,7 +17,7 @@ def get_library_stats():
     Вычисляет общую статистику библиотеки для HR-администратора
     """
     try:
-        # Общие объемы контента
+
         total_materials = Material.query.count()
         total_books = Material.query.filter_by(type='book').count()
         total_videos = Material.query.filter_by(type='video').count()
@@ -30,7 +30,7 @@ def get_library_stats():
         ).join(Material, Material.category_id == Category.id)\
          .group_by(Category.name).all()
 
-        # Словарь { "имя категории": количество }
+        # { "имя категории": количество }
         category_breakdown = {name: count for name, count in stats_by_category}
 
         return jsonify({
@@ -54,20 +54,55 @@ def get_library_stats():
 @admin_required
 def update_material(material_id):
     """
-    Редактирование метаданных материала администратором
+    Редактирование метаданных и файлов материала администратором
     """
     try:
         material = Material.query.get(material_id)
         if not material:
             return jsonify({"status": "error", "message": "Материал не найден"}), 404
 
-        data = request.get_json() or {}
+        if 'title' in request.form:
+            material.title = request.form['title'].strip()
+        if 'description' in request.form:
+            material.description = request.form['description'].strip()
+        if 'author' in request.form:
+            material.author = request.form['author'].strip()
+        if 'category_id' in request.form:
+            material.category_id = int(request.form['category_id'])
 
-        if 'title' in data: material.title = data['title']
-        if 'description' in data: material.description = data['description']
-        if 'cover_url' in data: material.cover_url = data['cover_url']
-        if 'author' in data: material.author = data['author']
-        if 'category_id' in data: material.category_id = data['category_id']
+        if 'tags[]' in request.form or request.form.getlist('tags[]'):
+            tag_names = request.form.getlist('tags[]')
+
+            material.tags.clear()
+            for tag_name in tag_names:
+                tag_name = tag_name.strip()
+                if tag_name:
+                    tag = Tag.query.filter_by(name=tag_name).first()
+                    if not tag:
+                        tag = Tag(name=tag_name)
+                        db.session.add(tag)
+                    material.tags.append(tag)
+
+        file_obj = request.files.get('file')
+        cover_obj = request.files.get('cover')
+
+        if cover_obj:
+            cover_path = save_file(cover_obj, 'covers', ALLOWED_COVER_EXTENSIONS)
+            material.cover_url = cover_path
+
+        if file_obj:
+            if material.type == 'book':
+                allowed_exts = ALLOWED_BOOK_EXTENSIONS
+                subfolder = 'books'
+            else:
+                allowed_exts = ALLOWED_VIDEO_EXTENSIONS
+                subfolder = 'videos'
+
+            file_path = save_file(file_obj, subfolder, allowed_exts)
+            material.file_url = file_path
+
+            full_path = os.path.join(current_app.config['UPLOAD_FOLDER'], file_path)
+            material.file_size = os.path.getsize(full_path) // 1024
 
         db.session.commit()
         return jsonify({
@@ -76,6 +111,7 @@ def update_material(material_id):
         }), 200
 
     except Exception as e:
+        db.session.rollback()
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -83,21 +119,48 @@ def update_material(material_id):
 @admin_required
 def delete_material(material_id):
     """
-    Удаление материала из базы данных
+    Удаление материала из базы данных и очистка физических файлов с диска
     """
     try:
         material = Material.query.get(material_id)
         if not material:
             return jsonify({"status": "error", "message": "Материал не найден"}), 404
 
+        upload_folder = current_app.config.get('UPLOAD_FOLDER')
+        file_to_delete = material.file_url
+        cover_to_delete = material.cover_url
+        material_title = material.title
+
         db.session.delete(material)
         db.session.commit()
+
+        if upload_folder:
+            # Чистим основной файл контента (видео или книгу)
+            if file_to_delete:
+                full_file_path = os.path.join(upload_folder, file_to_delete)
+                if os.path.exists(full_file_path):
+                    try:
+                        os.remove(full_file_path)
+                    except OSError as e:
+                        print(f"[WARNING] Не удалось удалить файл {full_file_path}: {e}")
+
+            # Чистим файл обложки
+            if cover_to_delete:
+                full_cover_path = os.path.join(upload_folder, cover_to_delete)
+                if os.path.exists(full_cover_path):
+                    try:
+                        os.remove(full_cover_path)
+                    except OSError as e:
+                        print(f"[WARNING] Не удалось удалить обложку {full_cover_path}: {e}")
+
         return jsonify({
             "status": "success",
-            "message": f"Материал '{material.title}' успешно удален из системы."
+            "message": f"Материал '{material_title}' и связанные с ним файлы успешно удалены."
         }), 200
 
     except Exception as e:
+        db.session.rollback()
+        print(f"[ERROR] Ошибка при удалении материала ID {material_id}: {str(e)}")
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
@@ -380,13 +443,20 @@ def get_category_standalone_materials(category_id):
         ).all()
 
         result = []
+        base_url = request.host_url.rstrip('/')
+
         for mat in standalone_materials:
             result.append({
                 "id": mat.id,
                 "title": mat.title,
                 "type": mat.type,
-                "author": mat.author,
-                "file_size": mat.file_size
+                "author": mat.author or "Не указан",
+                "description": mat.description or "",
+                # Умножаем на 1024, переводим КБ -> Байты, чтобы у Сани корректно считались МБ
+                "file_size": (mat.file_size or 0) * 1024,
+                # Генерируем полный путь к обложке, если она загружена
+                "cover_url": f"{base_url}/api/materials/static/{mat.cover_url}" if mat.cover_url else None,
+                "file_url": f"{base_url}/api/materials/static/{mat.file_url}" if mat.file_url else "#"
             })
 
         return jsonify(result), 200
