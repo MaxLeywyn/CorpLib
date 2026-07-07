@@ -69,7 +69,7 @@ class Material(db.Model):
 
     tags = db.relationship('Tag', secondary=material_tags, backref=db.backref('materials', lazy='dynamic'))
 
-    __table_args__ = (db.CheckConstraint("type IN ('book', 'video')", name='check_material_type'),)
+    __table_args__ = (db.CheckConstraint("type IN ('book', 'videos')", name='check_material_type'),)
 
 
 class Course(db.Model):
