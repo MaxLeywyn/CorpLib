@@ -1,5 +1,6 @@
 import { openCourseStructure } from './course-detail.js';
 import { openMaterialDetails } from './material-detail.js';
+import { openCreateCourseModal } from './admin-course-management.js';
 
 let currentCategoryId = null;
 let currentCategoryName = "";
@@ -102,7 +103,6 @@ async function loadCategoryCourses() {
         const response = await fetch(`${API_BASE_URL}/admin/categories/${currentCategoryId}/courses`, {
             method: "GET",
             headers: {
-                // сохраненный currentUserData
                 "Authorization": `Bearer ${currentUserData.token}`
             }
         });
@@ -118,16 +118,22 @@ async function loadCategoryCourses() {
 
         courses.forEach(course => {
             const card = document.createElement("div");
-            card.className = "category-card"; // Стиль карточек - как у категорий
+            card.className = "category-card";
+            card.style.cssText = "background: #fff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 8px rgba(0,0,0,.08); cursor: pointer; transition: .2s; display: flex; flex-direction: column; height: 100%;";
+
+            // Ограничение описания до 2 строк
+            const description = course.description || "Описание курса отсутствует.";
+            const shortDescription = description.length > 100 ? description.substring(0, 100) + '...' : description;
+            // исправлено - единый стиль курсов с ограничением описания (по символам)
             card.innerHTML = `
-                <div class="category-header">
-                    <div class="category-title">${course.title}</div>
-                    <div class="category-description">${course.description || "Описание курса отсутствует."}</div>
-                </div>
-                <div class="category-footer">
-                    <span>Открыть программу курса</span>
-                </div>
-            `;
+        <div class="category-header" style="background: #607d8b; color: white; padding: 24px; min-height: 120px; display: flex; flex-direction: column; justify-content: flex-end; flex-grow: 1;">
+            <div class="category-title" style="font-size: 22px; font-weight: 500; margin-bottom: 8px;">${course.title}</div>
+            <div class="category-description" style="color: #dfe7ec; font-size: 14px; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;">${shortDescription}</div>
+        </div>
+        <div class="category-footer" style="display: flex; justify-content: space-between; align-items: center; padding: 16px 24px; background: #ffffff; border-top: 1px solid var(--border-color);">
+            <span style="color: var(--primary-blue); font-weight: 500;">Открыть программу курса</span>
+        </div>
+    `;
             // Вызов отрисовки структуры курса
             card.addEventListener("click", () => {
                 openCourseStructure(course.id, currentCategoryId, currentCategoryName, currentUserData);
@@ -161,14 +167,30 @@ async function loadCategoryStandaloneMaterials() {
             list.innerHTML = "<p style='color: var(--text-muted);'>Прямые учебные материалы в эту категорию еще не добавлены.</p>";
             return;
         }
-
+        // Тест - поиск данных обложки-видео с сервера
+        let backendOrigin = "";
+        try {
+            backendOrigin = new URL(API_BASE_URL).origin;
+        } catch (e) {
+            console.error("Не удалось разобрать API_BASE_URL", e);
+        }
+        // нормализация ссылки для ТОЧНОЙ загрузки обложки
+        const normalizeUrl = (url) => {
+            if (!url || url === '#' || url === '') return null;
+            if (url.startsWith('http://') || url.startsWith('https://')) {
+                return url;
+            }
+            if (url.startsWith('/')) {
+                return `${backendOrigin}${url}`;
+            }
+            return `${backendOrigin}/${url}`;
+        };
         // Облажка сбоку
         list.style.cssText = "display: flex; flex-direction: column; gap: 16px; width: 100%;";
 
         materials.forEach(material => {
             const card = document.createElement("div");
             card.className = "material-row-card";
-
             card.style.cssText = "display: flex; gap: 16px; background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; padding: 14px; align-items: center; box-shadow: 0 1px 3px rgba(0,0,0,0.05);";
 
             const typeLabel = material.type === "book" ? "Книга" : "Видео";
@@ -176,28 +198,27 @@ async function loadCategoryStandaloneMaterials() {
             const metaInfo = material.type === "book" ? `Автор: ${material.author || "Не указан"}` : "Доступно для воспроизведения";
 
             // Если обложки нет - иконка сайта
-            const coverUrl = material.cover_url || '../icon/readIcon.png';
+            const coverUrl = normalizeUrl(material.cover_url) || '../icon/readIcon.png';
 
             card.innerHTML = `
-    <div class="material-card-cover-left" style="width: 70px; height: 90px; min-width: 70px; background: #f0f4f8; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
-        <img src="${coverUrl}" alt="Cover" style="width: 100%; height: 100%; object-fit: cover;">
-    </div>
-    <div class="material-info" style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
-        <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
-            <span class="material-row-title" style="font-weight: 600; color: var(--text-main); font-size: 16px;">${material.title}</span>
-            <span class="material-type-tag ${typeClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${typeLabel}</span>
-        </div>
-        <div class="material-row-meta" style="font-size: 13px; color: var(--text-muted);">
-            ${metaInfo} | Размер: ${(material.file_size / (1024 * 1024)).toFixed(2)} МБ
-        </div>
-        <p style="margin: 0; font-size: 13px; color: #5f6368; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
-            ${material.description || 'Без описания'}
-        </p>
-    </div>
-    <span class="material-open-arrow" style="color: var(--text-muted); font-size: 18px; margin-left: 8px;">›</span>
-`;
+                <div class="material-card-cover-left" style="width: 70px; height: 90px; min-width: 70px; background: #f0f4f8; border-radius: 6px; overflow: hidden; border: 1px solid var(--border-color); display: flex; align-items: center; justify-content: center;">
+                    <img src="${coverUrl}" alt="Cover" onerror="this.onerror=null; this.src='../icon/readIcon.png';" style="width: 100%; height: 100%; object-fit: cover;">
+                </div>
+                <div class="material-info" style="flex-grow: 1; display: flex; flex-direction: column; gap: 6px;">
+                    <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                        <span class="material-row-title" style="font-weight: 600; color: var(--text-main); font-size: 16px;">${material.title}</span>
+                        <span class="material-type-tag ${typeClass}" style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600;">${typeLabel}</span>
+                    </div>
+                    <div class="material-row-meta" style="font-size: 13px; color: var(--text-muted);">
+                        ${metaInfo} | Размер: ${(material.file_size / (1024 * 1024)).toFixed(2)} МБ
+                    </div>
+                    <p style="margin: 0; font-size: 13px; color: #5f6368; display: -webkit-box; -webkit-line-clamp: 1; -webkit-box-orient: vertical; overflow: hidden;">
+                        ${material.description || 'Без описания'}
+                    </p>
+                </div>
+                <span class="material-open-arrow" style="color: var(--text-muted); font-size: 18px; margin-left: 8px;">›</span>
+            `;
 
-// Клик по ВСЕЙ карточке открывает материал
             card.addEventListener("click", () => {
                 openMaterialDetails(material.id, currentCategoryId, currentCategoryName, currentUserData);
             });
@@ -209,16 +230,16 @@ async function loadCategoryStandaloneMaterials() {
     }
 }
 
-// Действия админа (обработка создания курса)
 let isUploadModalInitialized = false;
 
 // Действия админа (обработка создания курса и загрузки материалов)
 function initAdminActionEvents() {
     // Кнопка добавления курса
     document.getElementById("btn-create-course").addEventListener("click", () => {
-        alert(`Тест создания курса для категории ID: ${currentCategoryId}`); // Далее обработаем
+        openCreateCourseModal(currentCategoryId, currentUserData, () => {
+            loadCategoryCourses();
+        });
     });
-
     // Кнопка "Загрузить материал" — открытие модального окна
     document.getElementById("btn-create-material").addEventListener("click", () => {
         const modal = document.getElementById("material-upload-modal");
@@ -236,7 +257,6 @@ function initAdminActionEvents() {
                     fileInput.setAttribute("accept", ".mp4,video/mp4");
                 }
             });
-
             // Установить начальное значение
             if (typeSelect.value === "book") {
                 fileInput.accept = ".pdf";
@@ -246,13 +266,11 @@ function initAdminActionEvents() {
         }
         if (modal) modal.classList.remove("hidden");
     });
-
     // Инициализация модального окна (1 раз)
     if (!isUploadModalInitialized) {
         const modal = document.getElementById("material-upload-modal");
         const form = document.getElementById("material-upload-form");
         const closeBtn = document.getElementById("btn-close-upload-modal");
-
         // Закрытие окна по кнопке "Отмена"
         if (closeBtn && modal) {
             closeBtn.addEventListener("click", () => {
@@ -260,23 +278,19 @@ function initAdminActionEvents() {
                 form.reset();
             });
         }
-
         // Перехват отправки формы
         if (form) {
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
-
                 // Сбор текстовые данных из полей
                 const type = document.getElementById("upload-material-type").value;
                 const title = document.getElementById("upload-material-title").value.trim();
                 const author = document.getElementById("upload-material-author").value.trim();
                 const description = document.getElementById("upload-material-description").value.trim();
                 const tags = document.getElementById("upload-material-tags").value.trim();
-
                 // Получение файлов из инпутов
                 const fileInput = document.getElementById("upload-material-file");
                 const coverInput = document.getElementById("upload-material-cover");
-
                 // Формирование объекта FormData для данных
                 const formData = new FormData();
                 formData.append('type', type);
@@ -285,7 +299,6 @@ function initAdminActionEvents() {
                 formData.append('description', description);
                 formData.append('category_id', currentCategoryId);
                 formData.append('tags', tags);
-
                 // Если файлы прикреплены, добавляем их в formData
                 if (fileInput.files.length > 0) {
                     formData.append('file', fileInput.files[0]);
@@ -319,7 +332,6 @@ function initAdminActionEvents() {
                         // Закрытие модального окна и очистка поля формы
                         modal.classList.add("hidden");
                         form.reset();
-
                         // обновляем список самостоятельных материалов на экране (чтобы увидеть сразу созданный)
                         loadCategoryStandaloneMaterials();
                     } else {
