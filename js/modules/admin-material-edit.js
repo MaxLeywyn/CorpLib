@@ -7,58 +7,57 @@ export function openEditMaterialModal(material, currentUser, onSuccessCallback) 
     modalOverlay.id = "admin-edit-material-modal";
     modalOverlay.className = "modal-backdrop";
 
-    // Редактирование материала (с привязкой к атрибуту)
     const fileAcceptFormat = material.type === 'book' ? '.pdf' : '.mp4,video/mp4';
     const typeLabel = material.type === 'book' ? 'Книга (PDF)' : 'Видеоурок (MP4)';
 
     modalOverlay.innerHTML = `
-        <div class="modal-window" style="max-width: 550px; width: 100%;">
-            <div class="modal-header" style="padding-bottom: 16px; border-bottom: 1px solid var(--border-color); margin-bottom: 16px;">
-                <h2 style="margin: 0; font-size: 20px;">Редактирование материала</h2>
-                <button id="btn-close-edit-modal" class="btn-close" style="font-size: 24px;">&times;</button>
+        <div class="modal-window" style="max-width: 550px; width: 100%; padding: 24px; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
+            <div class="modal-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0; font-size: 16px; color: var(--text-main); font-weight: 600;">Редактирование материала</h3>
+                <button id="btn-close-edit-modal" class="btn-close" style="font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-muted);">&times;</button>
             </div>
             
             <form id="edit-material-form" style="display: flex; flex-direction: column; gap: 14px;">
                 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Тип контента (Нельзя изменить)</label>
-                    <input type="text" disabled value="${typeLabel}" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); background: #f8f9fa; color: var(--text-muted); cursor: not-allowed;">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Тип контента</label>
+                    <input type="text" disabled value="${typeLabel}" style="height: 38px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-color); background: #f8f9fa; color: var(--text-muted); cursor: not-allowed; font-size: 14px;">
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Название материала</label>
-                    <input type="text" id="edit-mat-title" value="${material.title}" required style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Название материала</label>
+                    <input type="text" id="edit-mat-title" value="${material.title}" required style="height: 38px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Автор</label>
-                    <input type="text" id="edit-mat-author" value="${material.author || ''}" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Автор</label>
+                    <input type="text" id="edit-mat-author" value="${material.author || ''}" style="height: 38px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
                 </div>
                 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Описание</label>
-                    <textarea id="edit-mat-desc" rows="4" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color); resize: vertical;">${material.description || ''}</textarea>
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Описание</label>
+                    <textarea id="edit-mat-desc" rows="4" style="padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-color); resize: vertical; font-size: 14px; font-family: inherit;">${material.description || ''}</textarea>
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-muted);">Теги (через запятую)</label>
-                    <input type="text" id="edit-mat-tags" value="${material.tags ? material.tags.join(', ') : ''}" style="padding: 10px; border-radius: 6px; border: 1px solid var(--border-color);">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Теги (через запятую)</label>
+                    <input type="text" id="edit-mat-tags" value="${material.tags ? material.tags.join(', ') : ''}" style="height: 38px; padding: 0 12px; border-radius: 6px; border: 1px solid var(--border-color); font-size: 14px;">
                 </div>
 
-                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 8px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Заменить файл контента</label>
-                    <span style="font-size: 11px; color: var(--text-muted);">Допустимый формат: ${fileAcceptFormat}. Оставьте пустым, если файл менять не нужно.</span>
+                <div style="display: flex; flex-direction: column; gap: 4px; margin-top: 4px; padding-top: 12px; border-top: 1px dashed var(--border-color);">
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Замена файла контента</label>
+                    <span style="font-size: 11px; color: var(--text-muted);">Допустимый формат: ${fileAcceptFormat}</span>
                     <input type="file" id="edit-mat-file" accept="${fileAcceptFormat}" style="font-size: 13px; margin-top: 4px;">
                 </div>
 
                 <div style="display: flex; flex-direction: column; gap: 4px;">
-                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Заменить обложку</label>
+                    <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Замена файла обложки</label>
                     <input type="file" id="edit-mat-cover" accept="image/*" style="font-size: 13px; margin-top: 4px;">
                 </div>
 
-                <div class="modal-footer" style="margin-top: 16px; padding-top: 16px; border-top: 1px solid var(--border-color); justify-content: flex-end; gap: 12px;">
-                    <button type="button" id="btn-cancel-edit" class="btn-outline">Отмена</button>
-                    <button type="submit" id="btn-save-edit" class="btn-action-blue">Сохранить изменения</button>
+                <div class="modal-footer" style="margin-top: 8px; padding-top: 14px; border-top: 1px solid var(--border-color); display: flex; justify-content: flex-end; gap: 12px;">
+                    <button type="button" id="btn-cancel-edit" class="btn-outline" style="height: 38px; padding: 0 16px; font-size: 14px; border-radius: 6px;">Отмена</button>
+                    <button type="submit" id="btn-save-edit" class="btn-action-blue" style="height: 38px; padding: 0 20px; font-size: 14px; border-radius: 6px;">Сохранить изменения</button>
                 </div>
             </form>
         </div>
@@ -71,13 +70,11 @@ export function openEditMaterialModal(material, currentUser, onSuccessCallback) 
     document.getElementById("btn-close-edit-modal").addEventListener("click", closeModal);
     document.getElementById("btn-cancel-edit").addEventListener("click", closeModal);
 
-    // Строгая валидация имен файлов
     const validateFilename = (inputElement) => {
         if (inputElement.files.length > 0) {
             const fileName = inputElement.files[0].name;
-            const cyrillicPattern = /[А-Яа-яЁё]/;
-            if (cyrillicPattern.test(fileName)) {
-                alert("Использование кириллицы в названиях файлов запрещено. Используйте латинские буквы");
+            if (/[А-Яа-яЁё]/.test(fileName)) {
+                alert("Использование кириллицы в названиях файлов запрещено. Переименуйте файл латиницей перед повторным выбором.");
                 inputElement.value = "";
             }
         }
