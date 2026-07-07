@@ -52,12 +52,16 @@ if (loginForm) {
             const data = await response.json();
             // Проверка ответа сервер
             if (response.ok) {
+                const userToken = data.token || data.access_token || data.accessToken;
+                const userEmail = data.user?.email || data.user?.login || loginInput;
+                const userName = data.user?.full_name || data.user?.name || "Пользователь";
+                const userRole = data.user?.role || "employee";
                 // Сохраняем токен и данные сессии
                 localStorage.setItem("currentUser", JSON.stringify({
-                    token: data.token, // Считываем токен
-                    email: data.user.login,
-                    role: data.user.role,
-                    name: data.user.full_name || data.user.name
+                    token: userToken,
+                    email: userEmail,
+                    role: userRole,
+                    name: userName
                 }));
                 window.location.replace("./main.html");
             } else {
@@ -105,11 +109,16 @@ if (registerForm) {
             const data = await response.json();
 
             if (response.ok) {
+                const userToken = data.token || data.access_token || data.accessToken;
+                const userEmail = data.user?.email || data.user?.login || emailInput;
+                const userName = data.user?.full_name || data.user?.name || nameInput;
+                const userRole = data.user?.role || "employee";
+
                 localStorage.setItem("currentUser", JSON.stringify({
-                    token: data.token,
-                    email: data.user.login,
-                    role: data.user.role,
-                    name: data.user.full_name || data.user.name
+                    token: userToken,
+                    email: userEmail,
+                    role: userRole,
+                    name: userName
                 }));
                 window.location.replace("./main.html");
             } else {
