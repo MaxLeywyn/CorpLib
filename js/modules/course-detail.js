@@ -1,4 +1,6 @@
 import { openCategoryDetails } from './category-detail.js';
+import { openCreateModuleModal, openUploadMaterialToModuleModal } from './admin-course-management.js';
+import { openMaterialDetails } from './material-detail.js';
 
 export async function openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser) {
     const detailContainer = document.getElementById("category-detail-container");
@@ -15,7 +17,7 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
         if (!response.ok) throw new Error("Ошибка при загрузке структуры курса");
         const courseData = await response.json();
 
-        // Удобная навигация по кутагориям-курсам и тд
+        // Синхронизируем глобальные хлебные крошки
         const pageTitle = document.getElementById("page-title");
         if (pageTitle) {
             pageTitle.innerHTML = `
@@ -23,138 +25,186 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
                 <span style="color: var(--text-muted); margin: 0 6px;">/</span> 
                 <span id="bc-cat" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">${currentCategoryName}</span>
                 <span style="color: var(--text-muted); margin: 0 6px;">/</span> 
-                <span style="color: var(--text-main);">${courseData.title}</span>
+                <span style="color: var(--text-main); font-weight: 400;">Курс: ${courseData.title}</span>
             `;
+
             document.getElementById("bc-home").addEventListener("click", () => {
-                document.getElementById("category-detail-container").classList.add("hidden");
                 document.getElementById("categories-container").classList.remove("hidden");
-                const addBtn = document.getElementById("add-category-btn");
-                if(addBtn) addBtn.style.display = "block";
+                detailContainer.classList.add("hidden");
                 pageTitle.innerText = "Категории";
+                const addBtn = document.getElementById("add-category-btn");
+                if (addBtn && (currentUser.role === 'admin' || currentUser.role === 'superuser')) addBtn.style.display = 'inline-flex';
             });
+
             document.getElementById("bc-cat").addEventListener("click", () => {
                 openCategoryDetails(currentCategoryId, currentCategoryName, currentUser);
             });
         }
 
-        // Отрисовка структуры
+        const isAdmin = currentUser.role === "admin" || currentUser.role === "superuser";
+
+        // кнопка удаления курса
+        const adminActionsPanelHtml = isAdmin ? `
+            <div id="course-admin-panel" style="background: #ffffff; padding: 14px; border-radius: 8px; border: 1px solid var(--border-color); display: flex; gap: 12px; margin-bottom: 4px; flex-wrap: wrap;">
+                <button id="btn-admin-add-module" class="btn-action-blue">Добавить учебный модуль</button>
+                <button id="btn-admin-delete-course" class="btn-outline" style="color: #d93025; border-color: #d93025; height: 38px; display: inline-flex; align-items: center; justify-content: center; padding: 0 16px; font-size: 14px; font-weight: 500; cursor: pointer; border-radius: 4px;">Удалить курс</button>
+            </div>
+        ` : '';
+
         detailContainer.innerHTML = `
-            <div class="course-structure-wrapper" style="display: flex; flex-direction: column; gap: 20px; width: 100%;">
+            <div class="course-structure-wrapper" style="display: flex; flex-direction: column; gap: 16px; width: 100%;">
+                
+                <button id="btn-back-to-category-items" class="btn-back" style="align-self: flex-start; margin: 0;">&larr; Назад к материалам категории</button>
+                
+                ${adminActionsPanelHtml}
+
                 <div class="course-info-block" style="background: #ffffff; padding: 20px; border-radius: 8px; border: 1px solid var(--border-color);">
-                    <h2 style="color: var(--text-main); margin-bottom: 8px; font-size: 22px;">${courseData.title}</h2>
-                    <p style="color: var(--text-muted); font-size: 14px; line-height: 1.5;">${courseData.description || "Без описания"}</p>
+                    <h2 style="color: var(--text-main); margin: 0 0 8px 0; font-size: 20px; font-weight: 600;">${courseData.title}</h2>
+                    <p style="color: var(--text-muted); font-size: 14px; line-height: 1.5; margin: 0;">${courseData.description || "Без описания"}</p>
                 </div>
-                <div id="course-modules-list" style="display: flex; flex-direction: column; gap: 16px;"></div>
+
+                <div class="course-progress-panel" style="background: var(--warm-blue-bg); padding: 16px; border-radius: 8px; border: 1px solid #e1e8ed;">
+                    <div style="display: flex; justify-content: space-between; font-weight: 600; font-size: 14px; color: var(--text-main); margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                        <span>Прогресс обучения:</span>
+                        <span style="color: var(--primary-blue);">${courseData.progress.percent}% (${courseData.progress.completed_lessons} / ${courseData.progress.total_lessons})</span>
+                    </div>
+                    <div style="width: 100%; background: #e1e8ed; height: 8px; border-radius: 4px; overflow: hidden;">
+                        <div style="width: ${courseData.progress.percent}%; background: var(--primary-blue); height: 100%; transition: width 0.3s ease;"></div>
+                    </div>
+                </div>
+
+                <div id="course-modules-list" style="display: flex; flex-direction: column; gap: 14px;"></div>
             </div>
         `;
 
+        document.getElementById("btn-back-to-category-items").addEventListener("click", () => {
+            openCategoryDetails(currentCategoryId, currentCategoryName, currentUser);
+        });
+
+        if (isAdmin) {
+            document.getElementById("btn-admin-add-module").addEventListener("click", () => {
+                openCreateModuleModal(courseId, currentUser, () => {
+                    openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
+                });
+            });
+
+            // Обработчик удаления курса
+            document.getElementById("btn-admin-delete-course").addEventListener("click", () => {
+                showConfirmModal("Удаление курса", `Вы действительно хотите полностью удалить курс<br><strong>«${courseData.title}»</strong>?<br><span style="color: #d93025; font-size: 12px; display: block; margin-top: 6px;">Это действие удалит все связанные модули и прогресс!</span>`, async () => {
+                    try {
+                        const delRes = await fetch(`${API_BASE_URL}/courses/${courseId}`, {
+                            method: "DELETE",
+                            headers: { "Authorization": `Bearer ${currentUser.token}` }
+                        });
+                        if (delRes.ok) {
+                            openCategoryDetails(currentCategoryId, currentCategoryName, currentUser);
+                        } else {
+                            const err = await delRes.json();
+                            alert(err.message || "Ошибка при удалении курса");
+                        }
+                    } catch (e) {
+                        alert("Сетевая ошибка при удалении курса");
+                    }
+                });
+            });
+        }
+
         const modulesListContainer = document.getElementById("course-modules-list");
-        const isAdmin = currentUser.role === 'admin' || currentUser.role === 'super_admin'; // Проверка роли
 
         courseData.modules.forEach(module => {
             const moduleBlock = document.createElement("div");
             moduleBlock.className = "module-accordion-item";
-            moduleBlock.style.cssText = "background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden;";
+            moduleBlock.style.cssText = "background: #ffffff; border: 1px solid var(--border-color); border-radius: 8px; overflow: hidden; display: flex; flex-direction: column;";
+
+            const addLessonBtnHtml = isAdmin ? `
+                <button class="btn-outline btn-add-lesson-trigger" style="height: 30px; font-size: 12px; padding: 0 12px; border-radius: 4px; align-self: flex-start; margin: 10px 20px; background: #fff; border: 1px dashed var(--primary-blue); color: var(--primary-blue); font-weight: 500; cursor: pointer;">
+                    + Добавить урок в модуль
+                </button>
+            ` : '';
+
+            // Кнопка удаления модуля
+            const deleteModuleBtnHtml = isAdmin ? `
+                <button class="btn-delete-module" data-id="${module.id}" data-title="${module.title}" style="background: transparent; border: 1px solid #d93025; color: #d93025; padding: 4px 10px; font-size: 12px; border-radius: 4px; cursor: pointer; font-weight: 500; transition: background 0.2s;">
+                    Удалить модуль
+                </button>
+            ` : '';
 
             moduleBlock.innerHTML = `
-                <div class="module-title" style="background: var(--warm-blue-bg); padding: 14px 20px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--border-color);">
-                    ${module.title}
+                <div class="module-title" style="background: var(--warm-blue-bg); padding: 12px 20px; font-weight: 600; color: var(--text-main); border-bottom: 1px solid var(--border-color); display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                    <span>${module.title}</span>
+                    ${deleteModuleBtnHtml}
                 </div>
-                <div class="module-lessons-list" style="padding: 8px 20px;"></div>
+                <div class="module-lessons-list" style="padding: 0 20px;"></div>
+                ${addLessonBtnHtml}
             `;
+
+            if (isAdmin) {
+                moduleBlock.querySelector(".btn-add-lesson-trigger").addEventListener("click", () => {
+                    openUploadMaterialToModuleModal(module.id, currentCategoryId, currentUser, () => {
+                        openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
+                    });
+                });
+
+                // Обработчик удаления модуля
+                moduleBlock.querySelector(".btn-delete-module").addEventListener("click", (e) => {
+                    e.stopPropagation();
+                    const moduleId = e.target.dataset.id;
+                    const moduleTitle = e.target.dataset.title;
+
+                    showConfirmModal("Удаление модуля", `Вы действительно хотите удалить модуль<br><strong>«${moduleTitle}»</strong>?<br><span style="color: var(--text-muted); font-size: 12px; display: block; margin-top: 6px;">Связи с материалами и прогресс будут очищены. Сами материалы останутся в каталоге.</span>`, async () => {
+                        try {
+                            const delModRes = await fetch(`${API_BASE_URL}/courses/modules/${moduleId}`, {
+                                method: "DELETE",
+                                headers: { "Authorization": `Bearer ${currentUser.token}` }
+                            });
+                            if (delModRes.ok) {
+                                openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
+                            } else {
+                                const err = await delModRes.json();
+                                alert(err.message || "Ошибка при удалении модуля");
+                            }
+                        } catch (err) {
+                            alert("Сетевая ошибка при удалении модуля");
+                        }
+                    });
+                });
+            }
 
             const lessonsContainer = moduleBlock.querySelector(".module-lessons-list");
 
-            module.materials.forEach(material => {
-                const lessonRow = document.createElement("div");
-                lessonRow.className = "lesson-row";
-                lessonRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px; cursor: pointer; transition: background-color 0.2s ease;";
+            if (!module.materials || module.materials.length === 0) {
+                lessonsContainer.innerHTML = "<p style='color: var(--text-muted); font-size: 13px; padding: 14px 0; margin: 0;'>В этом модуле еще нет учебных материалов.</p>";
+            } else {
+                module.materials.forEach(material => {
+                    const lessonRow = document.createElement("div");
+                    lessonRow.className = "lesson-row";
+                    lessonRow.style.cssText = "display: flex; justify-content: space-between; align-items: center; padding: 12px 0; border-bottom: 1px solid var(--border-color); flex-wrap: wrap; gap: 12px;";
 
-                lessonRow.addEventListener("mouseenter", () => lessonRow.style.backgroundColor = "#f8f9fa");
-                lessonRow.addEventListener("mouseleave", () => lessonRow.style.backgroundColor = "transparent");
+                    const statusText = material.is_completed ? "Изучено" : "Ожидает";
+                    const statusColor = material.is_completed ? "#1b5e20" : "var(--text-muted)";
+                    const typeLabel = (material.type === "book" || material.type === "pdf") ? "Книга" : "Видео";
+                    const exactMaterialId = material.id || material.material_id || 0;
 
-                const isCompleted = material.is_completed;
-                const typeLabel = material.type === "book" ? "Книга" : "Видео";
-
-                // Блок с кнопками администратора
-                let adminControls = "";
-                if (isAdmin) {
-                    adminControls = `
-                        <div class="admin-controls" style="display: flex; gap: 12px; margin-left: 12px; border-left: 1px solid var(--border-color); padding-left: 12px;">
-                            <button class="btn-edit-mat" data-id="${material.id}" style="background:none; border:none; color: var(--primary-blue); cursor:pointer; font-size:13px; font-weight:600; padding: 4px;">Изменить</button>
-                            <button class="btn-delete-mat" data-id="${material.id}" style="background:none; border:none; color: #d93025; cursor:pointer; font-size:13px; font-weight:600; padding: 4px;">Удалить</button>
+                    lessonRow.innerHTML = `
+                        <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                            <span style="font-size: 11px; font-weight: 600; color: ${statusColor}; text-transform: uppercase; letter-spacing: 0.5px;">[${statusText}]</span>
+                            <span class="lesson-click-title" style="font-weight: 500; color: var(--text-main); cursor: pointer; text-decoration: none;">${material.title}</span>
+                            <span style="font-size: 11px; color: var(--primary-blue); background: #e3f2fd; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase;">${typeLabel}</span>
                         </div>
                     `;
-                }
 
-                lessonRow.innerHTML = `
-                    <div style="display: flex; align-items: center; justify-content: space-between; width: 100%;">
-                        <div style="display: flex; align-items: center; gap: 10px;">
-                            <span style="font-size: 15px; font-weight: 500; ${isCompleted ? 'text-decoration: line-through; color: var(--text-muted);' : 'color: var(--text-main);'}">
-                                ${material.title}
-                            </span>
-                            <span style="font-size: 11px; padding: 2px 8px; border-radius: 4px; font-weight: 600; text-transform: uppercase; background: #e1e8ed; color: var(--text-main);">
-                                ${typeLabel}
-                            </span>
-                        </div>
-                        <div style="display: flex; align-items: center;">
-                            ${isCompleted ? '<span style="color: #1b5e20; font-weight: 600; font-size: 13px;">[Изучено]</span>' : ''}
-                            ${adminControls}
-                        </div>
-                    </div>
-                `;
+                    lessonRow.querySelector(".lesson-click-title").addEventListener("click", () => {
+                        openMaterialDetails(exactMaterialId, currentCategoryId, currentCategoryName, currentUser, {
+                            courseId: courseId,
+                            courseName: courseData.title,
+                            moduleId: module.id
+                        })
+                    });
 
-                // Обработчик клика по строке (открытие урока)
-                lessonRow.addEventListener("click", (e) => {
-                    // Если кликнули по кнопкам админа, не открываем урок
-                    if (e.target.closest('.admin-controls')) return;
-
-                    // Передаем полные названия для хлебных крошек
-                    openCourseLesson(courseId, module.id, material.id, currentCategoryId, currentCategoryName, currentUser, courseData.title, module.title);
+                    lessonsContainer.appendChild(lessonRow);
                 });
-
-                // Логика Админа (Удаление)
-                if (isAdmin) {
-                    const btnDelete = lessonRow.querySelector('.btn-delete-mat');
-                    btnDelete.addEventListener('click', async () => {
-                        if (confirm(`Вы уверены, что хотите удалить материал "${material.title}"?`)) {
-                            try {
-                                const res = await fetch(`${API_BASE_URL}/materials/${material.id}`, {
-                                    method: 'DELETE',
-                                    headers: { 'Authorization': `Bearer ${currentUser.token}` }
-                                });
-                                if (res.ok) {
-                                    openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser); // Обновляем список
-                                } else alert("Ошибка при удалении.");
-                            } catch(err) { alert("Ошибка сети"); }
-                        }
-                    });
-
-                    // Логика Админа (Редактирование)
-                    const btnEdit = lessonRow.querySelector('.btn-edit-mat');
-                    btnEdit.addEventListener('click', async () => {
-                        const newTitle = prompt("Введите новое название материала:", material.title);
-                        if (newTitle && newTitle.trim() !== "" && newTitle !== material.title) {
-                            try {
-                                const res = await fetch(`${API_BASE_URL}/materials/${material.id}`, {
-                                    method: 'PUT',
-                                    headers: {
-                                        'Content-Type': 'application/json',
-                                        'Authorization': `Bearer ${currentUser.token}`
-                                    },
-                                    body: JSON.stringify({ title: newTitle.trim() })
-                                });
-                                if (res.ok) {
-                                    openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
-                                } else alert("Ошибка при обновлении названия.");
-                            } catch(err) { alert("Ошибка сети"); }
-                        }
-                    });
-                }
-
-                lessonsContainer.appendChild(lessonRow);
-            });
-
+                if (lessonsContainer.lastChild) lessonsContainer.lastChild.style.borderBottom = "none";
+            }
             modulesListContainer.appendChild(moduleBlock);
         });
 
@@ -163,81 +213,32 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
     }
 }
 
-// Функция открытия конкретного урока внутри курса
-async function openCourseLesson(courseId, moduleId, materialId, currentCategoryId, currentCategoryName, currentUser, courseTitle, moduleTitle) {
-    const detailContainer = document.getElementById("category-detail-container");
-    if (!detailContainer) return;
+// Окно подтверждения удаления
+function showConfirmModal(title, messageHtml, onConfirm) {
+    const overlay = document.createElement("div");
+    overlay.className = "modal-backdrop";
 
-    detailContainer.innerHTML = "<p style='color: var(--text-muted); padding: 20px;'>Загрузка урока...</p>";
-
-    try {
-        const response = await fetch(`${API_BASE_URL}/materials/${materialId}`, {
-            method: "GET",
-            headers: { "Authorization": `Bearer ${currentUser.token}` }
-        });
-
-        if (!response.ok) throw new Error("Не удалось загрузить данные урока");
-        const material = await response.json();
-
-        // Логика возврата на прошлые категории
-        const pageTitle = document.getElementById("page-title");
-        if (pageTitle) {
-            pageTitle.innerHTML = `
-                <span id="bc-home" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">Категории</span> 
-                <span style="color: var(--text-muted); margin: 0 4px;">/</span> 
-                <span id="bc-cat" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">${currentCategoryName}</span>
-                <span style="color: var(--text-muted); margin: 0 4px;">/</span> 
-                <span id="bc-course" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">${courseTitle}</span>
-                <span style="color: var(--text-muted); margin: 0 4px;">/</span> 
-                <span style="color: var(--text-muted);">${moduleTitle}</span>
-                <span style="color: var(--text-muted); margin: 0 4px;">/</span> 
-                <span style="color: var(--text-main);">${material.title}</span>
-            `;
-
-            document.getElementById("bc-home").addEventListener("click", () => {
-                document.getElementById("category-detail-container").classList.add("hidden");
-                document.getElementById("categories-container").classList.remove("hidden");
-                const addBtn = document.getElementById("add-category-btn");
-                if(addBtn) addBtn.style.display = "block";
-                pageTitle.innerText = "Категории";
-            });
-            document.getElementById("bc-cat").addEventListener("click", () => openCategoryDetails(currentCategoryId, currentCategoryName, currentUser));
-            document.getElementById("bc-course").addEventListener("click", () => openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser));
-        }
-
-        const fileSrc = material.file_url || '#';
-        let mediaContent = material.type === "video"
-            ? `<video controls style="width: 100%; max-height: 500px; border-radius: 8px; background: #000;"><source src="${fileSrc}" type="video/mp4"></video>`
-            : `<div style="padding: 40px; text-align: center; background: #f8f9fa; border-radius: 8px; border: 1px dashed var(--border-color);"><a href="${fileSrc}" target="_blank" class="btn-outline" style="text-decoration: none; padding: 10px 20px;">Открыть документ</a></div>`;
-
-        detailContainer.innerHTML = `
-            <div class="lesson-detail-wrapper" style="display: flex; flex-direction: column; gap: 24px; max-width: 800px; margin: 0 auto; padding-bottom: 40px;">
-                <div>
-                    <h2 style="font-size: 24px; color: var(--text-main); margin-bottom: 8px;">${material.title}</h2>
-                    <p style="color: var(--text-muted); font-size: 15px;">${material.description || ''}</p>
-                </div>
-                <div class="media-container" style="width: 100%;">${mediaContent}</div>
-                <div style="margin-top: 20px; text-align: center; border-top: 1px solid var(--border-color); padding-top: 30px;">
-                    <button id="btn-mark-completed" class="btn-action-blue" style="padding: 14px 32px; font-size: 16px; font-weight: 600;">Отметить как пройдено</button>
-                </div>
+    overlay.innerHTML = `
+        <div class="modal-window" style="max-width: 360px; width: 100%; text-align: center; padding: 24px; box-sizing: border-box;">
+            <h3 style="margin-bottom: 12px; font-size: 18px; color: var(--text-main); font-weight: 600;">${title}</h3>
+            <p style="font-size: 14px; color: var(--text-muted); margin-bottom: 24px; line-height: 1.5; text-align: center;">
+                ${messageHtml}
+            </p>
+            <div class="modal-footer" style="justify-content: center; gap: 12px; padding: 0; border: none; display: flex; flex-direction: column; align-items: center; width: 100%;">
+                <button type="button" id="btn-modal-confirm" class="btn-action-blue" style="background-color: #d93025; padding: 10px 24px; color: #fff; width: 100%; max-width: 260px; border-radius: 4px; border: none; display: flex; align-items: center; justify-content: center; text-align: center;">Удалить</button>
+                <button type="button" id="btn-modal-cancel" class="btn-outline" style="padding: 10px 24px; width: 100%; max-width: 260px; border-radius: 4px; background: #fff;">Отмена</button>
             </div>
-        `;
-        // Логика прохождения курса
-        document.getElementById("btn-mark-completed").addEventListener("click", async (e) => {
-            const btn = e.target;
-            btn.disabled = true; btn.innerText = "Сохранение...";
-            try {
-                const trackRes = await fetch(`${API_BASE_URL}/courses/track`, {
-                    method: "POST",
-                    headers: { "Content-Type": "application/json", "Authorization": `Bearer ${currentUser.token}` },
-                    body: JSON.stringify({ course_id: Number(courseId), module_id: Number(moduleId), material_id: Number(materialId) })
-                });
-                if (trackRes.ok) openCourseStructure(courseId, currentCategoryId, currentCategoryName, currentUser);
-                else { alert("Ошибка при сохранении."); btn.disabled = false; btn.innerText = "Отметить как пройдено"; }
-            } catch (err) { alert("Сетевая ошибка"); btn.disabled = false; btn.innerText = "Отметить как пройдено"; }
-        });
+        </div>
+    `;
 
-    } catch (error) {
-        detailContainer.innerHTML = `<p style='color: red; padding: 20px;'>Ошибка: ${error.message}</p>`;
-    }
+    document.body.appendChild(overlay);
+
+    document.getElementById("btn-modal-cancel").addEventListener("click", () => overlay.remove());
+    document.getElementById("btn-modal-confirm").addEventListener("click", () => {
+        const btn = document.getElementById("btn-modal-confirm");
+        btn.disabled = true;
+        btn.innerText = "Удаление...";
+        overlay.remove();
+        onConfirm();
+    });
 }
