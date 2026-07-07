@@ -2,10 +2,10 @@ from flask import Blueprint, jsonify, request
 from MaxLuc.app.models import Course, CourseModule, CourseModuleMaterial, UserCourseProgress, Material
 from MaxLuc.app.schemas import course_schema
 from MaxLuc.app.extensions import db
-from flask_jwt_extended import get_jwt_identity
+from flask_jwt_extended import jwt_required, get_jwt_identity
+from datetime import datetime
+from MaxLuc.app.utils.decorators import login_required, admin_required
 
-# Импортируем твои обновленные декораторы безопасности
-from MaxLuc.app.utils.decorators import login_required
 
 courses_bp = Blueprint('courses', __name__, url_prefix='/api/courses')
 
@@ -27,7 +27,7 @@ def get_course_progress(course_id):
     Вычисляет процент прохождения курса для ТЕКУЩЕГО авторизованного сотрудника
     """
     try:
-        # ИЗМЕНЕНО: Безопасно вытаскиваем ID юзера прямо из JWT-токена
+
         user_id = int(get_jwt_identity())
 
         total_materials_query = db.session.query(CourseModuleMaterial.material_id) \
@@ -88,8 +88,7 @@ def get_course_structure(course_id):
         if not course:
             return jsonify({"status": "error", "message": "Курс не найден"}), 404
 
-        # Весь прогресс пользователя по этому курсу, чтобы не делать запросы в цикле
-        # Словарь вида: {(module_id, material_id): is_completed}
+
         user_progress = {}
         progress_records = UserCourseProgress.query.filter_by(user_id=user_id).all()
         for pr in progress_records:
@@ -147,4 +146,220 @@ def get_course_structure(course_id):
         return jsonify({"status": "error", "message": str(e)}), 500
 
 
+# Предполагается, что courses_bp уже объявлен вверху файла
+@courses_bp.route('/track', methods=['POST'])
+@jwt_required()
+def track_material_progress():
+    """
+    Эндпоинт для фиксации прохождения конкретного материала внутри курса/модуля.
+    """
+    try:
+        user_id = int(get_jwt_identity())
 
+        data = request.get_json() or {}
+        course_id = data.get('course_id')
+        module_id = data.get('module_id')
+        material_id = data.get('material_id')
+
+        # Валидация входных данных
+        if not course_id or not module_id or not material_id:
+            return jsonify({
+                "status": "error",
+                "message": "Поля course_id, module_id и material_id обязательны для передачи"
+            }), 400
+
+        #существует ли вообще такая связка материала и модуля в базе
+        link_exists = CourseModuleMaterial.query.filter_by(
+            module_id=module_id,
+            material_id=material_id
+        ).first()
+
+        if not link_exists:
+            return jsonify({
+                "status": "error",
+                "message": "Указанный материал не принадлежит данному модулю"
+            }), 404
+
+        #не было ли это задание уже выполнено ранее
+        progress = UserCourseProgress.query.filter_by(
+            user_id=user_id,
+            module_id=module_id,
+            material_id=material_id
+        ).first()
+
+        if progress:
+            if progress.is_completed:
+                return jsonify({
+                    "status": "success",
+                    "message": "Материал уже был отмечен как пройденный ранее"
+                }), 200
+
+
+            progress.is_completed = True
+            progress.completed_at = datetime.utcnow()
+        else:
+
+            new_progress = UserCourseProgress(
+                user_id=user_id,
+                module_id=module_id,
+                material_id=material_id,
+                is_completed=True,
+                completed_at=datetime.utcnow()
+            )
+            db.session.add(new_progress)
+
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": "Прогресс по материалу успешно сохранен"
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@courses_bp.route('', methods=['POST'])
+@admin_required
+def create_course():
+    """
+    Создание нового курса администратором с обязательным указанием категории
+    """
+    try:
+        data = request.get_json() or {}
+        title = data.get('title')
+        description = data.get('description', '')
+        category_id = data.get('category_id')
+
+        # Валидация обязательных полей
+        if not title or not category_id:
+            return jsonify({
+                "status": "error",
+                "message": "Поля title (название) и category_id (ID категории) обязательны"
+            }), 400
+
+        from MaxLuc.app.models import Category
+
+
+        category = Category.query.get(category_id)
+        if not category:
+            return jsonify({
+                "status": "error",
+                "message": f"Указанная категория с ID {category_id} не найдена"
+            }), 404
+
+
+        new_course = Course(
+            title=title.strip(),
+            description=description.strip(),
+            category_id=int(category_id)
+        )
+
+        db.session.add(new_course)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"Курс '{title}' успешно создан.",
+            "course": course_schema.dump(new_course)
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@courses_bp.route('/<int:course_id>/modules', methods=['POST'])
+@admin_required
+def create_module(course_id):
+    """
+    Добавление нового учебного модуля в существующий курс
+    """
+    try:
+        course = Course.query.get(course_id)
+        if not course:
+            return jsonify({"status": "error", "message": "Указанный курс не найден"}), 404
+
+        data = request.get_json() or {}
+        title = data.get('title')
+        sort_order = data.get('sort_order', 0)
+
+        if not title:
+            return jsonify({"status": "error", "message": "Название модуля обязательно"}), 400
+
+        new_module = CourseModule(
+            course_id=course_id,
+            title=title.strip(),
+            sort_order=int(sort_order)
+        )
+
+        db.session.add(new_module)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"Модуль '{title}' успешно добавлен в курс.",
+            "module": {
+                "id": new_module.id,
+                "course_id": new_module.course_id,
+                "title": new_module.title,
+                "sort_order": new_module.sort_order
+            }
+        }), 201
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
+
+
+@courses_bp.route('/modules/<int:module_id>/materials', methods=['POST'])
+@admin_required
+def attach_material_to_module(module_id):
+    """
+    Привязка существующего материала (из каталога) к конкретному модулю
+    """
+    try:
+        module = CourseModule.query.get(module_id)
+        if not module:
+            return jsonify({"status": "error", "message": "Указанный модуль не найден"}), 404
+
+        data = request.get_json() or {}
+        material_id = data.get('material_id')
+
+        if not material_id:
+            return jsonify({"status": "error", "message": "Параметр material_id обязателен"}), 400
+
+        material = Material.query.get(material_id)
+        if not material:
+            return jsonify({"status": "error", "message": "Указанный материал не найден в каталоге"}), 404
+
+        # Проверяем, не привязан ли этот материал к этому модулю уже сейчас
+        existing_link = CourseModuleMaterial.query.filter_by(
+            module_id=module_id,
+            material_id=material_id
+        ).first()
+
+        if existing_link:
+            return jsonify({
+                "status": "error",
+                "message": "Этот материал уже привязан к данному модулю"
+            }), 400
+
+        # Создаем связь Many-to-Many через промежуточную модель
+        new_link = CourseModuleMaterial(
+            module_id=module_id,
+            material_id=material_id
+        )
+
+        db.session.add(new_link)
+        db.session.commit()
+
+        return jsonify({
+            "status": "success",
+            "message": f"Материал '{material.title}' успешно добавлен в модуль '{module.title}'."
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"status": "error", "message": str(e)}), 500
