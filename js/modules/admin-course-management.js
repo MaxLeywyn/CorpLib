@@ -181,7 +181,7 @@ export function openUploadMaterialToModuleModal(moduleId, categoryId, currentUse
                     <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Тип учебного контента</label>
                     <select id="upload-mod-type" required style="height: 38px; padding: 0 10px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px; background-color: #fff;">
                         <option value="book">Книга (PDF)</option>
-                        <option value="videos">Видеоурок (MP4)</option>
+                        <option value="video">Видеоурок (MP4)</option>
                     </select>
                 </div>
 
@@ -192,7 +192,7 @@ export function openUploadMaterialToModuleModal(moduleId, categoryId, currentUse
 
                 <div style="display: grid; grid-template-columns: 2fr 1fr; gap: 12px;">
                     <div style="display: flex; flex-direction: column; gap: 6px;">
-                        <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Автор / Преподаватель</label>
+                        <label style="font-size: 13px; font-weight: 600; color: var(--text-main);">Автор</label>
                         <input type="text" id="upload-mod-author" placeholder="Имя автора или кафедры" style="height: 38px; padding: 0 12px; border: 1px solid var(--border-color); border-radius: 6px; font-size: 14px;">
                     </div>
                     <div style="display: flex; flex-direction: column; gap: 6px;">
