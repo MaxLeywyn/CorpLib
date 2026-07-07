@@ -33,9 +33,10 @@ document.addEventListener("DOMContentLoaded", () => {
     const pageTitle = document.getElementById("page-title");
     const navLinks = document.querySelectorAll(".sidebar-nav a");
 
-    // Вывод ФИО и роль в интерфейс
     if (document.getElementById("user-email")) {
-        document.getElementById("user-email").innerText = `${currentUser.name} (${currentUser.email})`;
+        const displayEmail = currentUser.email || currentUser.login || "Email не указан";
+        const displayName = currentUser.name || "Пользователь";
+        document.getElementById("user-email").innerText = `${displayName} (${displayEmail})`;
     }
     const roleBadge = document.getElementById("user-role-badge");
     if (roleBadge) {
@@ -89,7 +90,6 @@ document.addEventListener("DOMContentLoaded", () => {
             if (addCategoryBtn) addCategoryBtn.style.display = "none";
 
             // Логика отображения в зависимости от выбранного пункта меню
-            // ТОЧНОЕ название вкладки
             if (linkText === "Список категорий" || linkText === "Категории") {
                 categoriesContainer?.classList.remove("hidden");
                 if ((currentUser.role === "admin" || currentUser.role === "superuser") && addCategoryBtn) {
@@ -179,7 +179,6 @@ document.addEventListener("DOMContentLoaded", () => {
         categories.forEach(category => {
             const card = document.createElement("div");
             card.className = "category-card";
-
             // Троеточие рендерится только для админ-суперюзер
             const hasAccess = currentUser.role === "admin" || currentUser.role === "superuser";
 
@@ -213,7 +212,6 @@ document.addEventListener("DOMContentLoaded", () => {
             card.addEventListener("click", (e) => {
                 // Если троеточие-выпадающие окна - возврат
                 if (e.target.closest(".category-menu-container")) return;
-
                 // Вызов функции детализации (курсы-материалы)
                 openCategoryDetails(category.id, category.name, currentUser);
             });
@@ -258,7 +256,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
                 document.getElementById("edit-category-id").value = item.dataset.id;
                 document.getElementById("edit-category-name").value = item.dataset.name;
-                // Привязка к исправленному id поля (без дублирования слова edit)
                 document.getElementById("edit-category-description").value = item.dataset.desc;
 
                 editCategoryModal?.classList.remove("hidden");
@@ -307,7 +304,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
             const id = document.getElementById("edit-category-id").value;
             const updatedName = document.getElementById("edit-category-name").value.trim();
-            // Привязка к исправленному id поля
             const updatedDesc = document.getElementById("edit-category-description").value.trim();
 
             try {
