@@ -7,7 +7,7 @@ from sqlalchemy import or_
 from flask_jwt_extended import get_jwt_identity
 
 from MaxLuc.app.extensions import db
-from MaxLuc.app.models import Material, Tag, DownloadHistory, CourseModuleMaterial, UserCourseProgress, Category
+from MaxLuc.app.models import Material, Tag, DownloadHistory, CourseModuleMaterial, UserCourseProgress, Category, Course
 from MaxLuc.app.schemas import material_schema, materials_schema
 from MaxLuc.app.utils.decorators import admin_required, login_required
 
@@ -49,48 +49,123 @@ def save_file(file_obj, subfolder, allowed_extensions):
 # ==============================================================================
 # 1. ПОЛУЧЕНИЕ МАТЕРИАЛОВ (КАТАЛОГ И ПОИСК)
 # ==============================================================================
-@materials_bp.route('', methods=['GET'])
+@materials_bp.route('/search', methods=['POST'])
 @login_required
-def get_materials():
+def search_catalog():
     """
     Каталог материалов с фильтрацией по типу, категориям, тегам и поиску
     """
     try:
-        query = Material.query
+        data = request.get_json() or {}
+        types = data.get('types', [])
+        category_ids = data.get('category_ids', [])
+        tags = data.get('tags', [])
+        search_query = data.get('search_query', '').strip()
 
-        # Фильтр по типу контента (book / video)
-        mat_type = request.args.get('type')
-        if mat_type:
-            query = query.filter(Material.type == mat_type)
+        response_data = []
+        base_url = request.host_url
 
-        # Фильтр по категории
-        category_id = request.args.get('category_id')
-        if category_id:
-            query = query.filter(Material.category_id == category_id)
+        search_books_videos = not types or ('book' in types or 'video' in types)   
+        search_courses = not types or ('course' in types)
 
-        # Фильтр по тегу (связь Many-to-Many)
-        tag_name = request.args.get('tag')
-        if tag_name:
-            query = query.join(Material.tags).filter(Tag.name == tag_name)
+        if search_books_videos:
+            query_mat = Material.query
 
-        # Мощный поиск по подстроке (название, автор, описание)
-        search = request.args.get('search')
-        if search:
-            search_fmt = f"%{search}%"
-            query = query.filter(
-                or_(
-                    Material.title.ilike(search_fmt),
-                    Material.author.ilike(search_fmt),
-                    Material.description.ilike(search_fmt)
+            subquery = db.session.query(CourseModuleMaterial.material_id).subquery()
+            query_mat = query_mat.filter(~Material.id.in_(subquery))
+
+
+            if types and len(types) < 3:
+                allowed_material_types = [type for type in types if type in ['book', 'video']]
+                if allowed_material_types:
+                    query_mat = query_mat.filter(Material.type.in_(allowed_material_types))
+
+            if category_ids:
+                query_mat = query_mat.filter(Material.category_id.in_(category_ids))
+
+            if search_query:
+                search_fmt = f"%{search_query}%"
+                query_mat = query_mat.filter(
+                    or_(
+                        Material.title.ilike(search_fmt),
+                        Material.author.ilike(search_fmt),
+                        Material.description.ilike(search_fmt)
+                    )
                 )
-            )
+            
+            if tags:
+                query_mat = query_mat.filter(Material.tags.any(Tag.name.in_(tags)))
 
-        materials = query.all()
-        return jsonify(materials_schema.dump(materials)), 200
+            materials = query_mat.all()
 
+            for material in materials:
+                response_data.append({
+                    "id": material.id,
+                    "type": material.type,
+                    "title": material.title,
+                    "author": material.author or "",
+                    "description": material.description or "",
+                    "cover_url": f"{base_url}{material.cover_url}" if material.cover_url else None,
+                    "file_url": f"{base_url}{material.file_url}" if material.file_url else None,
+                    "file_size": material.file_size,
+                    "tags": [tag.name for tag in material.tags],
+                    "category_id": material.category_id
+                })
+
+        if search_courses:
+            query_c = Course.query
+
+            if category_ids:
+                query_c = query_c.filter(Course.category_id.in_(category_ids))
+
+            if search_query:
+                search_fmt = f"%{search_query}%"
+                query_c = query_c.filter(
+                    or_(
+                        Course.title.ilike(search_fmt),
+                        Course.author.ilike(search_fmt),
+                        Course.description.ilike(search_fmt)
+                    )
+                )
+                
+            courses = query_c.all()
+
+            for c in courses:
+                course_tags = set()
+                for module in c.modules:
+                    for link in module.materials:
+                        mat_item = Material.query.get(link.material_id)
+                        if mat_item:
+                            for tag in mat_item.tags:
+                                course_tags.add(tag.name)
+
+                if tags and not any(tag in course_tags for tag in tags):
+                    continue
+                
+                course_cover = None
+                if c.cover_url:
+                    course_cover = f"{base_url.rstrip('/')}/api/materials/static/{c.cover_url.lstrip('/')}"
+                else:
+                    course_cover = f"{base_url.rstrip('/')}/static/covers/default_course.png"
+
+                response_data.append({
+                    "id": c.id,
+                    "type": "course",
+                    "title": c.title,
+                    "author": c.author,
+                    "description": c.description,
+                    "cover_url": course_cover,
+                    "file_url": None,
+                    "file_size": None,
+                    "tags": list(course_tags),
+                    "category_id": c.category_id
+                })
+                
+
+        return jsonify(response_data), 200
+    
     except Exception as e:
         return jsonify({"status": "error", "message": str(e)}), 500
-
 
 
 # ==============================================================================
