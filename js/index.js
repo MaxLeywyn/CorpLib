@@ -1,4 +1,5 @@
 import { openCategoryDetails } from './modules/category-detail.js';
+import { loadMyLearning } from './modules/my-learning.js';
 
 document.addEventListener("DOMContentLoaded", () => {
     const sessionData = localStorage.getItem("currentUser");
@@ -9,6 +10,36 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentUser = JSON.parse(sessionData);
 
+    const myLearningBtn = document.getElementById("nav-my-learning") || document.getElementById("my-learning-btn");
+
+    if (myLearningBtn) {
+        myLearningBtn.addEventListener("click", (e) => {
+            e.preventDefault();
+
+            // 1. Скрываем все остальные активные разделы контента
+            if (categoriesContainer) categoriesContainer.classList.add("hidden");
+            if (usersManagementContainer) usersManagementContainer.classList.add("hidden");
+
+            const categoryDetailContainer = document.getElementById("category-detail-container");
+            if (categoryDetailContainer) categoryDetailContainer.classList.add("hidden");
+
+            if (addCategoryBtn) addCategoryBtn.style.display = "none";
+
+            // 2. Показываем контейнер "Моё обучение"
+            const myLearningContainer = document.getElementById("my-learning-container");
+            if (myLearningContainer) {
+                myLearningContainer.classList.remove("hidden");
+            }
+
+            // 3. Обновляем глобальный заголовок страницы
+            if (pageTitle) {
+                pageTitle.textContent = "Моё обучение";
+            }
+
+            // 4. Вызываем функцию загрузки данных
+            loadMyLearning();
+        });
+    }
     // Переменные для хранения ID перед удалением/редактированием
     let categoryIdToDelete = null;
 
@@ -91,15 +122,34 @@ document.addEventListener("DOMContentLoaded", () => {
 
             // Логика отображения в зависимости от выбранного пункта меню
             if (linkText === "Список категорий" || linkText === "Категории") {
+                // Интеграция контейнера "Моё обучение"
+                const myLearningContainer = document.getElementById("my-learning-container");
+                if (myLearningContainer) myLearningContainer.classList.add("hidden");
+
+                const categoryDetailContainer = document.getElementById("category-detail-container");
+                if (categoryDetailContainer) categoryDetailContainer.classList.add("hidden");
+
                 categoriesContainer?.classList.remove("hidden");
                 if ((currentUser.role === "admin" || currentUser.role === "superuser") && addCategoryBtn) {
                     addCategoryBtn.style.display = "inline-flex";
                 }
-                loadCategories(); // Метод загрузки списка категорий
+                loadCategories();
             }
             else if (linkText === "Назначить админов") {
                 usersManagementContainer?.classList.remove("hidden");
                 loadAllUsers(); // Метод загрузки списка пользователей
+            }
+            else if (linkText === "Моё обучение") {
+                // Скрываем другие контейнеры
+                categoriesContainer?.classList.add("hidden");
+                const categoryDetailContainer = document.getElementById("category-detail-container");
+                if (categoryDetailContainer) categoryDetailContainer.classList.add("hidden");
+
+                const myLearningContainer = document.getElementById("my-learning-container");
+                if (myLearningContainer) {
+                    myLearningContainer.classList.remove("hidden");
+
+                }
             }
         });
     });
@@ -473,6 +523,5 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         });
     }
-
     loadCategories();
 });

@@ -12,6 +12,12 @@ export async function openCategoryDetails(categoryId, categoryName, currentUser)
     currentCategoryName = categoryName;
     currentUserData = currentUser; // Сохранение переданного пользователя
 
+    // Скрытие "Моё обучение", если раздел был открыт
+    const myLearningContainer = document.getElementById("my-learning-container");
+    if (myLearningContainer) {
+        myLearningContainer.classList.add("hidden");
+    }
+
     const categoriesContainer = document.getElementById("categories-container");
     const addCategoryBtn = document.getElementById("add-category-btn");
     const pageTitle = document.getElementById("page-title");
