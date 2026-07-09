@@ -21,21 +21,30 @@ export async function openCourseStructure(courseId, currentCategoryId, currentCa
         const pageTitle = document.getElementById("page-title");
         if (pageTitle) {
             pageTitle.innerHTML = `
-                <span id="bc-home" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">Категории</span> 
+                <span id="bc-home" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">Список категорий</span> 
                 <span style="color: var(--text-muted); margin: 0 6px;">/</span> 
                 <span id="bc-cat" style="cursor:pointer; color: var(--primary-blue); font-weight: 500;">${currentCategoryName}</span>
                 <span style="color: var(--text-muted); margin: 0 6px;">/</span> 
-                <span style="color: var(--text-main); font-weight: 400;">Курс: ${courseData.title}</span>
+                <span style="color: var(--text-main); font-weight: 400;">${courseData.title}</span>
             `;
 
             document.getElementById("bc-home").addEventListener("click", () => {
-                document.getElementById("categories-container").classList.remove("hidden");
+                // Скрытие всех контейнеров
                 detailContainer.classList.add("hidden");
-                pageTitle.innerText = "Категории";
+                const categoriesContainer = document.getElementById("categories-container");
+                if (categoriesContainer) {
+                    categoriesContainer.classList.remove("hidden");
+                }
+                const myLearningContainer = document.getElementById("my-learning-container");
+                if (myLearningContainer) {
+                    myLearningContainer.classList.add("hidden");
+                }
+                pageTitle.innerText = "Список категорий";
                 const addBtn = document.getElementById("add-category-btn");
                 if (addBtn && (currentUser.role === 'admin' || currentUser.role === 'superuser')) addBtn.style.display = 'inline-flex';
             });
 
+            // Обработчик возврата к категории
             document.getElementById("bc-cat").addEventListener("click", () => {
                 openCategoryDetails(currentCategoryId, currentCategoryName, currentUser);
             });
