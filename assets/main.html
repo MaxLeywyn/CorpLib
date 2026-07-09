@@ -14,6 +14,7 @@
     <link rel="stylesheet" href="../css/modules/delete-category.css">
     <link rel="stylesheet" href="../css/modules/logout-modal.css">
     <link rel="stylesheet" href="../css/modules/material-upload.css">
+    <link rel="stylesheet" href="../css/modules/my-learning.css">
 
     <link rel="icon" href="../icon/readIcon.png" type="image/x-icon">
 </head>
@@ -27,7 +28,7 @@
         <nav class="sidebar-nav">
             <div id="common-block">
                 <a href="#" class="nav-link active">Список категорий</a>
-                <a href="#" class="nav-link">Моё обучение</a>
+                <a href="#" id="nav-my-learning" class="nav-link">Моё обучение</a>
             </div>
 
             <div id="admin-block">
@@ -64,6 +65,9 @@
         <section class="content-body">
             <div id="categories-container" class="categories-grid">
             </div>
+            <!-- Мое обучение -->
+            <div id="my-learning-container" class="categories-grid hidden"></div>
+
             <!-- Суперюзер: логика назначения/снятия админа -->
             <div id="users-management-container" class="users-management-card hidden">
                 <div class="users-management-subtitle">
