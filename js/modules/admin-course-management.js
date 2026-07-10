@@ -1,3 +1,5 @@
+import { validateFileByType, hasCyrillicInFilename } from '../file-valid.js';
+
 // Модальное окно создания нового курса
 export function openCreateCourseModal(categoryId, currentUser, onSuccessCallback) {
     const existingModal = document.getElementById("admin-create-course-modal");
@@ -239,25 +241,79 @@ export function openUploadMaterialToModuleModal(moduleId, categoryId, currentUse
 
     const typeSelect = document.getElementById("upload-mod-type");
     const fileInput = document.getElementById("upload-mod-file");
+    const fileErrorSpan = document.createElement("span");
+    fileErrorSpan.style.cssText = "font-size: 12px; color: #d93025; margin-top: 4px; display: none;";
+    fileInput.parentNode.appendChild(fileErrorSpan);
+
+    // Начальная установка accept
+    fileInput.setAttribute("accept", ".pdf");
 
     typeSelect.addEventListener("change", () => {
         if (typeSelect.value === 'book') {
-            fileInput.setAttribute("accept", ".pdf");
+            fileInput.setAttribute("accept", ".pdf,application/pdf");
         } else {
-            fileInput.setAttribute("accept", ".mp4");
+            fileInput.setAttribute("accept", ".mp4,video/mp4");
+        }
+        // Сброс файла при смене типа материала
+        fileInput.value = "";
+        fileErrorSpan.style.display = "none";
+    });
+
+    // Обновленная валидация
+    fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            fileErrorSpan.style.display = "none";
+            return;
+        }
+
+        const validation = validateFileByType(file, typeSelect.value);
+        if (!validation.valid) {
+            fileErrorSpan.textContent = validation.message;
+            fileErrorSpan.style.display = "block";
+            fileInput.value = ""; // Очищаем
+            return;
+        }
+        fileErrorSpan.style.display = "none";
+
+        if (hasCyrillicInFilename(file)) {
+            fileErrorSpan.textContent = "Использование кириллицы в названии файла запрещено. Переименуйте файл латиницей";
+            fileErrorSpan.style.display = "block";
+            fileInput.value = "";
+            return;
         }
     });
 
-    const checkCyrillicFilename = (inputElement) => {
-        inputElement.addEventListener("change", (e) => {
-            const file = e.target.files[0];
-            if (file && /[а-яё]/i.test(file.name)) {
-                alert("Имя выбранного файла содержит кириллические символы. Переименуйте файл на латиницу перед отправкой");
-            }
-        });
-    };
-    checkCyrillicFilename(fileInput);
-    checkCyrillicFilename(document.getElementById("upload-mod-cover"));
+// Валидация обложки
+    const coverInput = document.getElementById("upload-mod-cover");
+    const coverErrorSpan = document.createElement("span");
+    coverErrorSpan.style.cssText = "font-size: 12px; color: #d93025; margin-top: 4px; display: none;";
+    coverInput.parentNode.appendChild(coverErrorSpan);
+
+    coverInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            coverErrorSpan.style.display = "none";
+            return;
+        }
+
+        const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+        if (!isImage) {
+            coverErrorSpan.textContent = `Обложка должна быть изображением. Выбран: ${file.name}`;
+            coverErrorSpan.style.display = "block";
+            coverInput.value = "";
+            return;
+        }
+
+        if (hasCyrillicInFilename(file)) {
+            coverErrorSpan.textContent = "Кириллица в названии файла запрещена. Переименуйте файл латиницей";
+            coverErrorSpan.style.display = "block";
+            coverInput.value = "";
+            return;
+        }
+
+        coverErrorSpan.style.display = "none";
+    });
 
     document.getElementById("upload-to-module-form").addEventListener("submit", async (e) => {
         e.preventDefault();
