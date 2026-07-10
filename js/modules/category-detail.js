@@ -1,6 +1,7 @@
 import { openCourseStructure } from './course-detail.js';
 import { openMaterialDetails } from './material-detail.js';
 import { openCreateCourseModal } from './admin-course-management.js';
+import { validateFileByType, hasCyrillicInFilename } from '../file-valid.js';
 
 let currentCategoryId = null;
 let currentCategoryName = "";
@@ -251,25 +252,100 @@ function initAdminActionEvents() {
         const modal = document.getElementById("material-upload-modal");
         const typeSelect = document.getElementById("upload-material-type");
         const fileInput = document.getElementById("upload-material-file");
-        // Привязка типов, для книг - пдф, для видео - mp4
+        const coverInput = document.getElementById("upload-material-cover");
+
+        // Создаём элементы для ошибок, если их нет
+        let fileErrorSpan = document.getElementById("upload-file-error");
+        if (!fileErrorSpan) {
+            fileErrorSpan = document.createElement("span");
+            fileErrorSpan.id = "upload-file-error";
+            fileErrorSpan.style.cssText = "font-size: 12px; color: #d93025; margin-top: 4px; display: none;";
+            fileInput.parentNode.appendChild(fileErrorSpan);
+        }
+
+        let coverErrorSpan = document.getElementById("upload-cover-error");
+        if (!coverErrorSpan) {
+            coverErrorSpan = document.createElement("span");
+            coverErrorSpan.id = "upload-cover-error";
+            coverErrorSpan.style.cssText = "font-size: 12px; color: #d93025; margin-top: 4px; display: none;";
+            coverInput.parentNode.appendChild(coverErrorSpan);
+        }
+
+        // Сброс ошибок при открытии модалки
+        fileErrorSpan.style.display = "none";
+        coverErrorSpan.style.display = "none";
+
         if (typeSelect && fileInput) {
             typeSelect.addEventListener("change", (e) => {
                 const selectedType = e.target.value;
                 if (selectedType === "book") {
-                    fileInput.accept = ".pdf";
-                    fileInput.setAttribute("accept", ".pdf");
+                    fileInput.accept = ".pdf,application/pdf";
                 } else if (selectedType === "video") {
                     fileInput.accept = ".mp4,video/mp4";
-                    fileInput.setAttribute("accept", ".mp4,video/mp4");
                 }
+                // Сбрасываем файл при смене типа
+                fileInput.value = "";
+                fileErrorSpan.style.display = "none";
             });
             // Установить начальное значение
             if (typeSelect.value === "book") {
-                fileInput.accept = ".pdf";
+                fileInput.accept = ".pdf,application/pdf";
             } else {
                 fileInput.accept = ".mp4,video/mp4";
             }
+
+            // Обновленная валидация
+            fileInput.addEventListener("change", (e) => {
+                const file = e.target.files[0];
+                if (!file) {
+                    fileErrorSpan.style.display = "none";
+                    return;
+                }
+
+                const validation = validateFileByType(file, typeSelect.value);
+                if (!validation.valid) {
+                    fileErrorSpan.textContent = validation.message;
+                    fileErrorSpan.style.display = "block";
+                    fileInput.value = "";
+                    return;
+                }
+                fileErrorSpan.style.display = "none";
+
+                if (hasCyrillicInFilename(file)) {
+                    fileErrorSpan.textContent = "Кириллица в названии файла запрещена. Переименуйте латиницей";
+                    fileErrorSpan.style.display = "block";
+                    fileInput.value = "";
+                    return;
+                }
+            });
         }
+
+        // Валидация обложки (добавлено)
+        coverInput.addEventListener("change", (e) => {
+            const file = e.target.files[0];
+            if (!file) {
+                coverErrorSpan.style.display = "none";
+                return;
+            }
+
+            const isImage = file.type.startsWith('image/') || /\.(jpg|jpeg|png|webp)$/i.test(file.name);
+            if (!isImage) {
+                coverErrorSpan.textContent = `Обложка должна быть изображением. Выбран: ${file.name}`;
+                coverErrorSpan.style.display = "block";
+                coverInput.value = "";
+                return;
+            }
+
+            if (hasCyrillicInFilename(file)) {
+                coverErrorSpan.textContent = "Кириллица в названии файла запрещена";
+                coverErrorSpan.style.display = "block";
+                coverInput.value = "";
+                return;
+            }
+
+            coverErrorSpan.style.display = "none";
+        });
+
         if (modal) modal.classList.remove("hidden");
     });
     // Инициализация модального окна (1 раз)
@@ -288,14 +364,23 @@ function initAdminActionEvents() {
         if (form) {
             form.addEventListener("submit", async (e) => {
                 e.preventDefault();
-                // Сбор текстовые данных из полей
+
                 const type = document.getElementById("upload-material-type").value;
+                const fileInput = document.getElementById("upload-material-file");
+                if (fileInput.files.length > 0) {
+                    const validation = validateFileByType(fileInput.files[0], type);
+                    if (!validation.valid) {
+                        alert(validation.message);
+                        return; // Блокируем отправку
+                    }
+                }
+
+                // Сбор текстовые данных из полей
                 const title = document.getElementById("upload-material-title").value.trim();
                 const author = document.getElementById("upload-material-author").value.trim();
                 const description = document.getElementById("upload-material-description").value.trim();
                 const tags = document.getElementById("upload-material-tags").value.trim();
                 // Получение файлов из инпутов
-                const fileInput = document.getElementById("upload-material-file");
                 const coverInput = document.getElementById("upload-material-cover");
                 // Формирование объекта FormData для данных
                 const formData = new FormData();
