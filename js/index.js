@@ -1,5 +1,6 @@
 import { openCategoryDetails } from './modules/category-detail.js';
 import { loadMyLearning } from './modules/my-learning.js';
+import { initSearchFilter } from './modules/search-filter.js';
 
 document.addEventListener("DOMContentLoaded", () => {
     const sessionData = localStorage.getItem("currentUser");
@@ -10,13 +11,17 @@ document.addEventListener("DOMContentLoaded", () => {
 
     const currentUser = JSON.parse(sessionData);
 
+    if (typeof API_BASE_URL !== 'undefined') {
+        initSearchFilter(currentUser, API_BASE_URL);
+    }
+    // Раздел "Моё обучение"
     const myLearningBtn = document.getElementById("nav-my-learning") || document.getElementById("my-learning-btn");
 
     if (myLearningBtn) {
         myLearningBtn.addEventListener("click", (e) => {
             e.preventDefault();
 
-            // 1. Скрываем все остальные активные разделы контента
+            // Скрываем все остальные активные разделы контента
             if (categoriesContainer) categoriesContainer.classList.add("hidden");
             if (usersManagementContainer) usersManagementContainer.classList.add("hidden");
 
@@ -25,18 +30,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
             if (addCategoryBtn) addCategoryBtn.style.display = "none";
 
-            // 2. Показываем контейнер "Моё обучение"
+            // Показываем контейнер "Моё обучение"
             const myLearningContainer = document.getElementById("my-learning-container");
             if (myLearningContainer) {
                 myLearningContainer.classList.remove("hidden");
             }
 
-            // 3. Обновляем глобальный заголовок страницы
+            // Обновляем глобальный заголовок страницы
             if (pageTitle) {
                 pageTitle.textContent = "Моё обучение";
             }
 
-            // 4. Вызываем функцию загрузки данных
+            // Вызываем функцию загрузки данных
             loadMyLearning();
         });
     }
@@ -135,7 +140,23 @@ document.addEventListener("DOMContentLoaded", () => {
                 }
                 loadCategories();
             }
+            // Исправлено: сокрытие секции "Моё обучение" при переходе в секцию "назначить админов"
             else if (linkText === "Назначить админов") {
+                const myLearningContainer = document.getElementById("my-learning-container");
+                // Скрываем "Моё обучение"
+                if (myLearningContainer) {
+                    myLearningContainer.classList.add("hidden");
+                }
+
+                // Скрываем категории
+                categoriesContainer?.classList.add("hidden");
+
+                // Скрываем детали категории
+                const categoryDetailContainer = document.getElementById("category-detail-container");
+                if (categoryDetailContainer) {
+                    categoryDetailContainer.classList.add("hidden");
+                }
+
                 usersManagementContainer?.classList.remove("hidden");
                 loadAllUsers(); // Метод загрузки списка пользователей
             }
