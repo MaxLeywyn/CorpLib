@@ -1,10 +1,10 @@
 from flask import Blueprint, jsonify, request, current_app
 from MaxLuc.app.extensions import db
-from MaxLuc.app.models import Material, Course, Category, CourseModuleMaterial, User, Role
+from MaxLuc.app.models import Material, Course, Category, CourseModuleMaterial, User, Role, Tag, material_tags
 from sqlalchemy import func
 from flask_jwt_extended import get_jwt_identity
-import os
-# Импортируем твои обновленные декораторы, которые работают на JWT
+import os, traceback
+
 from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -23,7 +23,7 @@ def get_library_stats():
         total_videos = Material.query.filter_by(type='video').count()
         total_courses = Course.query.count()
 
-        # Группируем количество материалов по категориям
+        # группируем количество материалов по категориям
         stats_by_category = db.session.query(
             Category.name,
             func.count(Material.id)
@@ -54,7 +54,7 @@ def get_library_stats():
 @admin_required
 def update_material(material_id):
     """
-    Редактирование метаданных и файлов материала администратором
+    Редактирование метаданных и файлов материала администратором.
     """
     try:
         material = Material.query.get(material_id)
@@ -70,18 +70,33 @@ def update_material(material_id):
         if 'category_id' in request.form:
             material.category_id = int(request.form['category_id'])
 
-        if 'tags[]' in request.form or request.form.getlist('tags[]'):
-            tag_names = request.form.getlist('tags[]')
+
+        raw_tags = request.form.getlist('tags') + request.form.getlist('tags[]')
+
+        if raw_tags:
+            tag_names = []
+            for item in raw_tags:
+                # если Саня прислал строку через запятую
+                if ',' in item:
+                    tag_names.extend([t.strip() for t in item.split(',') if t.strip()])
+                else:
+                    if item.strip():
+                        tag_names.append(item.strip())
+
+
+            tag_names = list(set(tag_names))
 
             material.tags.clear()
+            db.session.flush()
+
             for tag_name in tag_names:
-                tag_name = tag_name.strip()
-                if tag_name:
-                    tag = Tag.query.filter_by(name=tag_name).first()
-                    if not tag:
-                        tag = Tag(name=tag_name)
-                        db.session.add(tag)
-                    material.tags.append(tag)
+                tag = Tag.query.filter_by(name=tag_name).first()
+                if not tag:
+                    tag = Tag(name=tag_name)
+                    db.session.add(tag)
+
+                material.tags.append(tag)
+
 
         file_obj = request.files.get('file')
         cover_obj = request.files.get('cover')
@@ -105,6 +120,9 @@ def update_material(material_id):
             material.file_size = os.path.getsize(full_path) // 1024
 
         db.session.commit()
+
+        cleanup_unused_tags()
+
         return jsonify({
             "status": "success",
             "message": f"Материал ID {material_id} успешно обновлен."
@@ -112,8 +130,30 @@ def update_material(material_id):
 
     except Exception as e:
         db.session.rollback()
+        print(f"\n!!! Ошибка внутри эндпоинта update_material: {e}")
+        traceback.print_exc()
         return jsonify({"status": "error", "message": str(e)}), 500
 
+def cleanup_unused_tags():
+    """
+    Находит и полностью удаляет из базы теги,
+    которые не привязаны ни к одному материалу.
+    """
+    try:
+        used_tag_ids = db.session.query(material_tags.c.tag_id).distinct().subquery()
+        deleted_count = Tag.query.filter(~Tag.id.in_(used_tag_ids)).delete(synchronize_session=False)
+
+        db.session.commit()
+
+        if deleted_count > 0:
+            print(f"[GC] Очистка тегов завершена. Удалено сиротских тегов: {deleted_count}")
+
+        return deleted_count
+
+    except Exception as e:
+        db.session.rollback()
+        print(f"[GC ERROR] Не удалось провести очистку тегов: {e}")
+        return 0
 
 @admin_bp.route('/materials/<int:material_id>', methods=['DELETE'])
 @admin_required
@@ -135,7 +175,6 @@ def delete_material(material_id):
         db.session.commit()
 
         if upload_folder:
-            # Чистим основной файл контента (видео или книгу)
             if file_to_delete:
                 full_file_path = os.path.join(upload_folder, file_to_delete)
                 if os.path.exists(full_file_path):
@@ -144,7 +183,7 @@ def delete_material(material_id):
                     except OSError as e:
                         print(f"[WARNING] Не удалось удалить файл {full_file_path}: {e}")
 
-            # Чистим файл обложки
+            # чистим файл обложки
             if cover_to_delete:
                 full_cover_path = os.path.join(upload_folder, cover_to_delete)
                 if os.path.exists(full_cover_path):
@@ -312,7 +351,7 @@ def get_admin_categories():
 # -- Управление HR
 
 @admin_bp.route('/users/<int:target_user_id>/role', methods=['PUT'])
-@superuser_required  # Доступ только для superuser!
+@superuser_required
 def update_user_role(target_user_id):
     """
     Изменение роли пользователя (Назначение/снятие прав HR/admin)
@@ -331,7 +370,6 @@ def update_user_role(target_user_id):
                 "message": "Недопустимая роль. Можно выбрать только 'admin' или 'employee'"
             }), 400
 
-        # ИЗМЕНЕНО: Достаем зашифрованный ID суперюзера из JWT-токена вместо сырых заголовков
         current_su_id = get_jwt_identity()
         if int(current_su_id) == target_user_id:
             return jsonify({
@@ -432,18 +470,17 @@ def get_category_standalone_materials(category_id):
         if not category:
             return jsonify({"status": "error", "message": "Категория не найдена"}), 404
 
-        # ID всех материалов, которые уже привязаны к модулям курсов
+        #ID всех материалов, которые уже привязаны к модулям курсов
         assigned_material_ids = db.session.query(CourseModuleMaterial.material_id).distinct().all()
         assigned_ids = [m_id[0] for m_id in assigned_material_ids]
 
-        # Материалы, принадлежащие этой категории и не входящие в курсы
+        #материалы, принадлежащие этой категории и не входящие в курсы
         standalone_materials = Material.query.filter(
             Material.category_id == category_id,
             Material.id.notin_(assigned_ids) if assigned_ids else True
         ).all()
 
         result = []
-        base_url = request.host_url.rstrip('/')
 
         for mat in standalone_materials:
             result.append({
@@ -452,11 +489,10 @@ def get_category_standalone_materials(category_id):
                 "type": mat.type,
                 "author": mat.author or "Не указан",
                 "description": mat.description or "",
-                # Умножаем на 1024, переводим КБ -> Байты, чтобы у Сани корректно считались МБ
                 "file_size": (mat.file_size or 0) * 1024,
-                # Генерируем полный путь к обложке, если она загружена
-                "cover_url": f"{base_url}/api/materials/static/{mat.cover_url}" if mat.cover_url else None,
-                "file_url": f"{base_url}/api/materials/static/{mat.file_url}" if mat.file_url else "#"
+
+                "cover_url": f"/uploads/{mat.cover_url}" if mat.cover_url else None,
+                "file_url": f"/uploads/{mat.file_url}" if mat.file_url else "#"
             })
 
         return jsonify(result), 200

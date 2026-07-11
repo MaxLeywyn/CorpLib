@@ -1,24 +1,27 @@
 import os
-from flask import Flask
+from flask import Flask, send_from_directory
 from MaxLuc.app.config import Config
 from MaxLuc.app.extensions import db, ma, socketio
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager
 from datetime import timedelta
 
+
 jwt = JWTManager()
 
 def create_app(config_class=Config):
+
     app = Flask(__name__)
 
-
     app.config.from_object(config_class)
-    app.config["JWT_SECRET_KEY"] = "super-secret-key-change-me-in-production"
+    app.config["JWT_SECRET_KEY"] = "super-secret-key-og-velichie-228"
     app.config["JWT_ACCESS_TOKEN_EXPIRES"] = timedelta(hours=24)
     app.config["JWT_COOKIE_CSRF_PROTECT"] = False
     app.config["JWT_CSRF_IN_COOKIES"] = False
     app.json.ensure_ascii = False
 
+    if not app.config.get('UPLOAD_FOLDER'):
+        app.config['UPLOAD_FOLDER'] = os.path.join(app.root_path, 'uploads')
 
     jwt.init_app(app)
     socketio.init_app(app)
@@ -38,6 +41,10 @@ def create_app(config_class=Config):
     app.register_blueprint(history_bp)
     app.register_blueprint(auth_bp)
 
+    @app.route('/uploads/<path:filename>')
+    def uploaded_file(filename):
+        return send_from_directory(app.config['UPLOAD_FOLDER'], filename)
+
     # Настройка CORS
     allowed_origins = [
         "http://localhost:63342"  # Саня
@@ -54,8 +61,12 @@ def create_app(config_class=Config):
             r"/api/*": {
                 "origins": allowed_origins,
                 "methods": ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-                "allow_headers": ["Content-Type", "Authorization", "X-User-Id"],
+                "allow_headers": ["Content-Type", "Authorization"],
                 "supports_credentials": True
+            },
+            r"/uploads/*": {
+                "origins": allowed_origins,
+                "methods": ["GET", "OPTIONS"]
             }
         }
     )
