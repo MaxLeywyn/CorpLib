@@ -20,7 +20,6 @@ def login():
     if not user or not check_password_hash(user.password_hash, password_input):
         return jsonify({"status": "error", "message": "Неверный логин или пароль"}), 401
 
-    # Зашиваем в токен identity (обычно ID) и дополнительные данные (роль)
     additional_claims = {"role": user.role.name if user.role else "employee"}
     access_token = create_access_token(identity=str(user.id), additional_claims=additional_claims)
 
@@ -68,7 +67,7 @@ def register():
             db.session.add(role)
             db.session.flush()
 
-        # ИЗМЕНЕНО: Хешируем сырой пароль перед записью в базу данных
+
         hashed_password = generate_password_hash(password_input)
 
         new_user = User(
@@ -81,9 +80,14 @@ def register():
         db.session.add(new_user)
         db.session.commit()
 
+
+        additional_claims = {"role": role.name}
+        access_token = create_access_token(identity=str(new_user.id), additional_claims=additional_claims)
+
         return jsonify({
             "status": "success",
             "message": f"Пользователь '{new_user.full_name}' успешно зарегистрирован.",
+            "token": access_token,
             "user": {
                 "id": new_user.id,
                 "login": new_user.login,
