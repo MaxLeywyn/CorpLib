@@ -47,6 +47,7 @@ def create_app(config_class=Config):
 
     # Настройка CORS
     allowed_origins = [
+        "https://d87cc2ba-af2c-4571-b698-472681ebb851.tunnel4.com",
         "http://localhost:63342"  # Саня
     ]
 
