@@ -242,8 +242,6 @@ async function executeCatalogSearch(currentUser, apiBaseUrl) {
         .filter(c => c.checked).map(c => c.value);
     const search_query = document.getElementById("filter-search-query").value.trim();
 
-    console.log("Параметры поиска:", { types, category_ids, tags, search_query });
-
     try {
         const searchUrl = `${apiBaseUrl}/materials/search`;
         console.log("Тест запроса:", searchUrl);
@@ -257,11 +255,9 @@ async function executeCatalogSearch(currentUser, apiBaseUrl) {
             body: JSON.stringify({ types, category_ids, tags, search_query })
         });
 
-        console.log("Ответ:", response.status);
 
         if (!response.ok) {
             const errorText = await response.text();
-            console.error("Ошибка:", errorText);
             throw new Error(`Ошибка ${response.status}`);
         }
 
@@ -319,7 +315,6 @@ function renderSearchResults(items, container, currentUser) {
 
         // Вызов модуля по клику
         card.addEventListener("click", () => {
-            console.log("Клик:", item);
 
             // Показываем category-detail-container
             const detailContainer = document.getElementById("category-detail-container");
