@@ -114,7 +114,7 @@
     flex-grow: 1;
 }
 
-/* адаптация под телефон (тест) */
+/* адаптация под телефон (ИТОГ) */
 @media (max-width: 768px) {
     .app-container {
         grid-template-columns: 1fr;
@@ -131,9 +131,40 @@
 
     /* навигация горизонтальной с прокруткой, если не влезает */
     .sidebar-nav {
-        flex-direction: row;
-        overflow-x: auto;
-        padding-bottom: 8px;
+        display: flex;
+        flex-direction: column; /* Исправлено: в колонку для корректного отображения*/
+        width: 100%;
+        gap: 10px; /* Отступ между группами меню */
+        align-items: stretch; /* Растягиваем на всю ширину */
+    }
+    .nav-group {
+        display: flex;
+        flex-direction: column; /* Также в колонну */
+        width: 100%;
+        align-items: flex-start; /* Выравнивание текста слева */
+    }
+    .group-title {
+        font-size: 11px;
+        text-transform: uppercase;
+        color: #888888;
+        margin-bottom: 8px;
+        padding-left: 10px;
+    }
+
+    /* Ссылки (пункты меню) */
+    .nav-item {
+        width: 100%;
+        padding: 10px 15px;
+        box-sizing: border-box;
+        text-align: left;
+    }
+
+    /* Разделительные линии */
+    .nav-group hr {
+        width: 100%;
+        border: none;
+        border-top: 1px solid #e0e0e0;
+        margin: 10px 0;
     }
 
     .nav-item {
@@ -152,7 +183,30 @@
 
     .section-title { display: none; } /* скрытие заголовка секций на мобилках */
 
-    .sidebar-footer { display: none; } /* скрытие футер сайдбара на мобилке */
+    /* Исправлено: кидаем содержимое футер наверх, адаптив под телефон */
+    .sidebar-footer {
+        display: flex;
+        flex-direction: row;
+        align-items: center;
+        justify-content: space-between;
+        gap: 12px;
+        width: 100%;
+        margin-top: 12px;
+        padding-top: 12px;
+        border-top: 1px solid var(--border-color);
+    }
+    /* Отображение текущей роли */
+    .sidebar-footer .badge {
+        flex-grow: 1;
+        padding: 8px;
+        font-size: 11px;
+    }
+    /* Кнопка выхода */
+    #logout-btn {
+        padding: 8px 16px;
+        font-size: 13px;
+        background-color: #f1f3f4;
+    }
 
     .content-header { padding: 16px; }
     .content-body { padding: 16px; }
