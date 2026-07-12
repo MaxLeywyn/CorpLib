@@ -285,7 +285,7 @@ def upload_material():
         author = request.form.get('author', '')
         description = request.form.get('description', '')
         category_id = request.form.get('category_id')
-        tags_raw = request.form.get('tags', '')
+        tags_raw = request.form.get('tags', '').lower()
         module_id = request.form.get('module_id')
 
         if not material_type or not title or not category_id:
