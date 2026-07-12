@@ -1,3 +1,5 @@
+import { validateFileByType, hasCyrillicInFilename } from '../file-valid.js';
+
 /* Функционал редактирования материалов */
 export function openEditMaterialModal(material, currentUser, onSuccessCallback) {
     const existingModal = document.getElementById("admin-edit-material-modal");
@@ -70,19 +72,69 @@ export function openEditMaterialModal(material, currentUser, onSuccessCallback) 
     document.getElementById("btn-close-edit-modal").addEventListener("click", closeModal);
     document.getElementById("btn-cancel-edit").addEventListener("click", closeModal);
 
-    const validateFilename = (inputElement) => {
-        if (inputElement.files.length > 0) {
-            const fileName = inputElement.files[0].name;
-            if (/[А-Яа-яЁё]/.test(fileName)) {
-                alert("Использование кириллицы в названиях файлов запрещено. Переименуйте файл латиницей перед повторным выбором.");
-                inputElement.value = "";
-            }
+    // Валидация отправляемого файла
+    const fileInput = document.getElementById("edit-mat-file");
+    const fileErrorSpan = document.getElementById("edit-mat-file-error");
+    const contentType = material.type; // типы книга (PDF) и видео (MP4)
+
+    fileInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            fileErrorSpan.style.display = "none";
+            return;
         }
-    };
 
-    document.getElementById("edit-mat-file").addEventListener("change", (e) => validateFilename(e.target));
-    document.getElementById("edit-mat-cover").addEventListener("change", (e) => validateFilename(e.target));
+        // Проверка формата
+        const validation = validateFileByType(file, contentType);
+        if (!validation.valid) {
+            fileErrorSpan.textContent = validation.message;
+            fileErrorSpan.style.display = "block";
+            fileInput.value = ""; // Очищаем input
+            return;
+        }
+        fileErrorSpan.style.display = "none";
 
+        // Проверка кириллицы
+        if (hasCyrillicInFilename(file)) {
+            fileErrorSpan.textContent = "Использование кириллицы в названиях файлов запрещено. Переименуйте файл латиницей перед повторным выбором.";
+            fileErrorSpan.style.display = "block";
+            fileInput.value = "";
+            return;
+        }
+    });
+
+    // Валидация обложки материала
+    const coverInput = document.getElementById("edit-mat-cover");
+    const coverErrorSpan = document.getElementById("edit-mat-cover-error");
+
+    coverInput.addEventListener("change", (e) => {
+        const file = e.target.files[0];
+        if (!file) {
+            coverErrorSpan.style.display = "none";
+            return;
+        }
+
+        const isImage = file.type.startsWith('image/') ||
+            /\.(jpg|jpeg|png|gif|webp)$/i.test(file.name);
+
+        if (!isImage) {
+            coverErrorSpan.textContent = `Обложка должна быть изображением. Выбран файл: ${file.name}`;
+            coverErrorSpan.style.display = "block";
+            coverInput.value = "";
+            return;
+        }
+
+        if (hasCyrillicInFilename(file)) {
+            coverErrorSpan.textContent = "Использование кириллицы в названиях файлов запрещено. Переименуйте файл латиницей.";
+            coverErrorSpan.style.display = "block";
+            coverInput.value = "";
+            return;
+        }
+
+        coverErrorSpan.style.display = "none";
+    });
+
+    // Отправка формы (последняя проверка)
     document.getElementById("edit-material-form").addEventListener("submit", async (e) => {
         e.preventDefault();
 
