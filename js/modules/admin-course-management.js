@@ -175,7 +175,7 @@ export function openUploadMaterialToModuleModal(moduleId, categoryId, currentUse
         <div class="modal-window" style="max-width: 550px; width: 100%; padding: 24px; border-radius: 8px; background: #ffffff; box-shadow: 0 4px 20px rgba(0,0,0,0.15);">
             <div class="modal-header" style="padding-bottom: 12px; border-bottom: 1px solid var(--border-color); margin-bottom: 16px; display: flex; justify-content: space-between; align-items: center;">
                 <h3 style="margin: 0; font-size: 18px; color: var(--text-main); font-weight: 600;">Загрузка материала в урок</h3>
-                <button id="btn-close-upload-modal" class="btn-close" style="font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
+                <button id="btn-close-upload-to-module-modal" class="btn-close" style="font-size: 24px; background: none; border: none; cursor: pointer; color: var(--text-muted); line-height: 1;">&times;</button>
             </div>
             
             <form id="upload-to-module-form" style="display: flex; flex-direction: column; gap: 14px;">
@@ -236,7 +236,7 @@ export function openUploadMaterialToModuleModal(moduleId, categoryId, currentUse
     modalOverlay.classList.remove("hidden");
 
     const closeModal = () => modalOverlay.remove();
-    document.getElementById("btn-close-upload-modal").addEventListener("click", closeModal);
+    document.getElementById("btn-close-upload-to-module-modal").addEventListener("click", closeModal);
     document.getElementById("btn-cancel-upload").addEventListener("click", closeModal);
 
     const typeSelect = document.getElementById("upload-mod-type");
