@@ -253,6 +253,8 @@ function initAdminActionEvents() {
         const typeSelect = document.getElementById("upload-material-type");
         const fileInput = document.getElementById("upload-material-file");
         const coverInput = document.getElementById("upload-material-cover");
+        const closeBtn = document.getElementById("btn-close-upload-modal");
+        const closeIcon = document.getElementById("close-upload-modal-icon");
 
         // Создаём элементы для ошибок, если их нет
         let fileErrorSpan = document.getElementById("upload-file-error");
@@ -345,6 +347,23 @@ function initAdminActionEvents() {
 
             coverErrorSpan.style.display = "none";
         });
+        // Добавлено: закрытие модалки по "крестику" и кнопки "отмена"
+        if (closeIcon && modal) {
+            closeIcon.onclick = (e) => {
+                e.preventDefault();
+                modal.classList.add("hidden");
+                const form = document.getElementById("material-upload-form");
+                if (form) form.reset();
+            };
+        }
+
+        if (closeBtn && modal) {
+            closeBtn.onclick = (e) => {
+                e.preventDefault();
+                modal.classList.add("hidden");
+                if (form) form.reset();
+            };
+        }
 
         if (modal) modal.classList.remove("hidden");
     });
@@ -353,6 +372,8 @@ function initAdminActionEvents() {
         const modal = document.getElementById("material-upload-modal");
         const form = document.getElementById("material-upload-form");
         const closeBtn = document.getElementById("btn-close-upload-modal");
+        const closeIcon = document.getElementById("close-upload-modal-icon");
+
         // Закрытие окна по кнопке "Отмена"
         if (closeBtn && modal) {
             closeBtn.addEventListener("click", () => {
@@ -360,6 +381,15 @@ function initAdminActionEvents() {
                 form.reset();
             });
         }
+
+        // Закрытие окна по "крестику"
+        if (closeIcon && modal) {
+            closeIcon.addEventListener("click", () => {
+                modal.classList.add("hidden");
+                form.reset();
+            });
+        }
+
         // Перехват отправки формы
         if (form) {
             form.addEventListener("submit", async (e) => {
