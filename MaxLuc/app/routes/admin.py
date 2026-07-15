@@ -5,13 +5,12 @@ from sqlalchemy import func
 from flask_jwt_extended import get_jwt_identity
 import os, traceback
 
-# Импорт твоих декораторов
+
 from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
 from MaxLuc.app.routes.materials import (ALLOWED_BOOK_EXTENSIONS,
                                          ALLOWED_VIDEO_EXTENSIONS,
                                          ALLOWED_COVER_EXTENSIONS,
                                          save_file, check_file_size_limit)
-
 
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
@@ -108,7 +107,6 @@ def update_material(material_id):
 
         # Валидация основного файла
         if file_obj:
-            # Сначала проверяем лимиты размера (30MB / 500MB)
             is_valid, size_error = check_file_size_limit(file_obj, material.type)
             if not is_valid:
                 return jsonify({"status": "error", "message": size_error}), 400

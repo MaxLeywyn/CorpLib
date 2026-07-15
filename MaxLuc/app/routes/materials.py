@@ -33,7 +33,7 @@ def check_file_size_limit(file_storage, file_type):
     file_storage.seek(0, os.SEEK_END)
     file_size = file_storage.tell()
 
-    # Возвращаем указатель в начало, чтобы файл можно было прочитать и сохранить дальше!
+    # Возвращаем указатель в начало, чтобы файл можно было прочитать и сохранить дальше
     file_storage.seek(0)
 
     # Лимиты в байтах
@@ -260,9 +260,6 @@ def upload_material():
         if not file_obj and material_type == 'book':
             return jsonify({"status": "error", "message": "Файл книги (PDF) обязателен для загрузки"}), 400
 
-        # ----------------------------------------------------------------------
-        # ИНТЕГРИРОВАННАЯ ПРОВЕРКА РАЗМЕРА ФАЙЛА
-        # ----------------------------------------------------------------------
         if file_obj:
             is_valid, size_error = validate_file_size(file_obj, material_type)
             if not is_valid:
