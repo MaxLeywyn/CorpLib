@@ -5,32 +5,36 @@ from sqlalchemy import func
 from flask_jwt_extended import get_jwt_identity
 import os, traceback
 
+# Импорт твоих декораторов
 from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
+from MaxLuc.app.routes.materials import (ALLOWED_BOOK_EXTENSIONS,
+                                         ALLOWED_VIDEO_EXTENSIONS,
+                                         ALLOWED_COVER_EXTENSIONS,
+                                         save_file)
+
+
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
 @admin_bp.route('/stats', methods=['GET'])
-@admin_required  # Защищаем эндпоинт, статистика доступна только админам/HR
+@admin_required
 def get_library_stats():
     """
     Вычисляет общую статистику библиотеки для HR-администратора
     """
     try:
-
         total_materials = Material.query.count()
         total_books = Material.query.filter_by(type='book').count()
         total_videos = Material.query.filter_by(type='video').count()
         total_courses = Course.query.count()
 
-        # группируем количество материалов по категориям
         stats_by_category = db.session.query(
             Category.name,
             func.count(Material.id)
         ).join(Material, Material.category_id == Category.id)\
          .group_by(Category.name).all()
 
-        # { "имя категории": количество }
         category_breakdown = {name: count for name, count in stats_by_category}
 
         return jsonify({
@@ -70,19 +74,16 @@ def update_material(material_id):
         if 'category_id' in request.form:
             material.category_id = int(request.form['category_id'])
 
-
         raw_tags = request.form.getlist('tags') + request.form.getlist('tags[]')
 
         if raw_tags:
             tag_names = []
             for item in raw_tags:
-                # если Саня прислал строку через запятую
                 if ',' in item:
                     tag_names.extend([t.strip() for t in item.split(',') if t.strip()])
                 else:
                     if item.strip():
                         tag_names.append(item.strip())
-
 
             tag_names = list(set(tag_names))
 
@@ -97,15 +98,21 @@ def update_material(material_id):
 
                 material.tags.append(tag)
 
-
         file_obj = request.files.get('file')
         cover_obj = request.files.get('cover')
 
+        # Валидация обложки
         if cover_obj:
             cover_path = save_file(cover_obj, 'covers', ALLOWED_COVER_EXTENSIONS)
             material.cover_url = cover_path
 
+        # Валидация основного файла
         if file_obj:
+            # Сначала проверяем лимиты размера (30MB / 500MB)
+            is_valid, size_error = validate_file_size(file_obj, material.type)
+            if not is_valid:
+                return jsonify({"status": "error", "message": size_error}), 400
+
             if material.type == 'book':
                 allowed_exts = ALLOWED_BOOK_EXTENSIONS
                 subfolder = 'books'

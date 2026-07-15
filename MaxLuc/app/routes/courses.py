@@ -346,7 +346,7 @@ def attach_material_to_module(module_id):
                 "message": "Этот материал уже привязан к данному модулю"
             }), 400
 
-        # создаем связь Many-to-Many через промежуточную модель
+        # создаем связь многие ко многим через промежуточную модель
         new_link = CourseModuleMaterial(
             module_id=module_id,
             material_id=material_id
