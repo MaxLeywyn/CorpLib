@@ -23,6 +23,32 @@ def allowed_file(filename, allowed_set):
     return '.' in filename and filename.rsplit('.', 1)[1].lower() in allowed_set
 
 
+def check_file_size_limit(file_storage, file_type):
+    """
+    Проверяет, подходит ли файл под ограничения размера.
+    file_storage: объект FileStorage из request.files
+    file_type: строка 'video' или 'book' (pdf)
+    """
+    # Перемещаем указатель в конец файла, чтобы узнать его размер
+    file_storage.seek(0, os.SEEK_END)
+    file_size = file_storage.tell()
+
+    # Возвращаем указатель в начало, чтобы файл можно было прочитать и сохранить дальше!
+    file_storage.seek(0)
+
+    # Лимиты в байтах
+    PDF_LIMIT = 30 * 1024 * 1024  # 30 MB
+    VIDEO_LIMIT = 500 * 1024 * 1024  # 500 MB
+
+    if file_type == 'video' and file_size > VIDEO_LIMIT:
+        return False, f"Видео слишком большое. Максимальный размер: 500 МБ (передано {round(file_size / (1024 * 1024), 2)} МБ)"
+
+    if file_type == 'book' and file_size > PDF_LIMIT:
+        return False, f"Документ слишком большой. Максимальный размер: 30 МБ (передано {round(file_size / (1024 * 1024), 2)} МБ)"
+
+    return True, None
+
+
 def save_file(file_obj, subfolder, allowed_extensions):
     """Вспомогательная функция для безопасного сохранения файлов с уникальным именем"""
     if not file_obj or file_obj.filename == '':
@@ -139,7 +165,7 @@ def search_catalog():
             from MaxLuc.app.models import CourseModule
 
             for c in courses:
-                # Оптимальный сбор ВСЕХ тегов курса ОДНИМ запросом (вместо пачки циклов)
+
                 tags_query = db.session.query(Tag.name).join(Material.tags).join(
                     CourseModuleMaterial, CourseModuleMaterial.material_id == Material.id
                 ).join(
@@ -148,11 +174,9 @@ def search_catalog():
 
                 course_tags = [t[0] for t in tags_query.all()]
 
-                # Если искали по тегам, и у курса нет ни одного совпадения — скипаем курс
                 if tags and not any(tag in course_tags for tag in tags):
                     continue
 
-                # Формируем красивый путь к обложке курса
                 if c.cover_url:
                     course_cover = f"{base_url}/api/materials/static/{c.cover_url.lstrip('/')}"
                 else:
@@ -162,7 +186,7 @@ def search_catalog():
                     "id": c.id,
                     "type": "course",
                     "title": c.title,
-                    "author": getattr(c, 'author', ''),  # Безопасно вытаскиваем, если поле добавили в БД
+                    "author": getattr(c, 'author', ''),
                     "description": c.description or "",
                     "cover_url": course_cover,
                     "file_url": None,
@@ -235,6 +259,14 @@ def upload_material():
 
         if not file_obj and material_type == 'book':
             return jsonify({"status": "error", "message": "Файл книги (PDF) обязателен для загрузки"}), 400
+
+        # ----------------------------------------------------------------------
+        # ИНТЕГРИРОВАННАЯ ПРОВЕРКА РАЗМЕРА ФАЙЛА
+        # ----------------------------------------------------------------------
+        if file_obj:
+            is_valid, size_error = validate_file_size(file_obj, material_type)
+            if not is_valid:
+                return jsonify({"status": "error", "message": size_error}), 400
 
         cover_path = None
         if cover_obj:

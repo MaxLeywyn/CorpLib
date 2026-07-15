@@ -5,32 +5,36 @@ from sqlalchemy import func
 from flask_jwt_extended import get_jwt_identity
 import os, traceback
 
+# Импорт твоих декораторов
 from MaxLuc.app.utils.decorators import admin_required, superuser_required, login_required
+from MaxLuc.app.routes.materials import (ALLOWED_BOOK_EXTENSIONS,
+                                         ALLOWED_VIDEO_EXTENSIONS,
+                                         ALLOWED_COVER_EXTENSIONS,
+                                         save_file)
+
+
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
 @admin_bp.route('/stats', methods=['GET'])
-@admin_required  # Защищаем эндпоинт, статистика доступна только админам/HR
+@admin_required
 def get_library_stats():
     """
     Вычисляет общую статистику библиотеки для HR-администратора
     """
     try:
-
         total_materials = Material.query.count()
         total_books = Material.query.filter_by(type='book').count()
         total_videos = Material.query.filter_by(type='video').count()
         total_courses = Course.query.count()
 
-        # группируем количество материалов по категориям
         stats_by_category = db.session.query(
             Category.name,
             func.count(Material.id)
         ).join(Material, Material.category_id == Category.id)\
          .group_by(Category.name).all()
 
-        # { "имя категории": количество }
         category_breakdown = {name: count for name, count in stats_by_category}
 
         return jsonify({

@@ -3,7 +3,7 @@ import sys
 import socket
 from werkzeug.formparser import MultiPartParser
 
-MultiPartParser.buffer_size = 64 * 1024 * 1024  # 64 MB
+MultiPartParser.buffer_size = 510 * 1024 * 1024  # 64 MB
 
 os.environ["PGCLIENTENCODING"] = "utf-8"
 
