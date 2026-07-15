@@ -261,7 +261,7 @@ def upload_material():
             return jsonify({"status": "error", "message": "Файл книги (PDF) обязателен для загрузки"}), 400
 
         if file_obj:
-            is_valid, size_error = validate_file_size(file_obj, material_type)
+            is_valid, size_error = check_file_size_limit(file_obj, material_type)
             if not is_valid:
                 return jsonify({"status": "error", "message": size_error}), 400
 
