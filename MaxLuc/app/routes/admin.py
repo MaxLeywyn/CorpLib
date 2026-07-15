@@ -74,19 +74,16 @@ def update_material(material_id):
         if 'category_id' in request.form:
             material.category_id = int(request.form['category_id'])
 
-
         raw_tags = request.form.getlist('tags') + request.form.getlist('tags[]')
 
         if raw_tags:
             tag_names = []
             for item in raw_tags:
-                # если Саня прислал строку через запятую
                 if ',' in item:
                     tag_names.extend([t.strip() for t in item.split(',') if t.strip()])
                 else:
                     if item.strip():
                         tag_names.append(item.strip())
-
 
             tag_names = list(set(tag_names))
 
@@ -101,15 +98,21 @@ def update_material(material_id):
 
                 material.tags.append(tag)
 
-
         file_obj = request.files.get('file')
         cover_obj = request.files.get('cover')
 
+        # Валидация обложки
         if cover_obj:
             cover_path = save_file(cover_obj, 'covers', ALLOWED_COVER_EXTENSIONS)
             material.cover_url = cover_path
 
+        # Валидация основного файла
         if file_obj:
+            # Сначала проверяем лимиты размера (30MB / 500MB)
+            is_valid, size_error = validate_file_size(file_obj, material.type)
+            if not is_valid:
+                return jsonify({"status": "error", "message": size_error}), 400
+
             if material.type == 'book':
                 allowed_exts = ALLOWED_BOOK_EXTENSIONS
                 subfolder = 'books'
